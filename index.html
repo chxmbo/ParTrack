@@ -251,7 +251,9 @@
             </div>
           </div>
           <div class="panel analytics-panel">
-            <div class="analytics-filters">
+            <div id="analyticsLocked" class="analytics-locked" aria-live="polite"></div>
+            <div id="analyticsContent" class="analytics-content">
+              <div class="analytics-filters">
               <label>
                 Course
                 <select id="analyticsCourseSelect"></select>
@@ -260,24 +262,25 @@
                 Tee
                 <select id="analyticsTeeSelect"></select>
               </label>
-            </div>
-            <div id="analyticsSummary" class="metric-grid analytics-summary"></div>
-            <div class="hole-table-wrap">
-              <table class="hole-table analytics-table">
-                <thead>
-                  <tr>
-                    <th>Hole</th>
-                    <th>Par</th>
-                    <th>Yards</th>
-                    <th>Hcp</th>
-                    <th>Avg</th>
-                    <th>To par</th>
-                    <th>Best</th>
-                    <th>Worst</th>
-                  </tr>
-                </thead>
-                <tbody id="holeAnalyticsRows"></tbody>
-              </table>
+              </div>
+              <div id="analyticsSummary" class="metric-grid analytics-summary"></div>
+              <div class="hole-table-wrap">
+                <table class="hole-table analytics-table">
+                  <thead>
+                    <tr>
+                      <th>Hole</th>
+                      <th>Par</th>
+                      <th>Yards</th>
+                      <th>Hcp</th>
+                      <th>Avg</th>
+                      <th>To par</th>
+                      <th>Best</th>
+                      <th>Worst</th>
+                    </tr>
+                  </thead>
+                  <tbody id="holeAnalyticsRows"></tbody>
+                </table>
+              </div>
             </div>
           </div>
         </section>

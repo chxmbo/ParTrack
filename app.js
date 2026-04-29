@@ -67,6 +67,8 @@ const analyticsCourseSelect = document.querySelector("#analyticsCourseSelect");
 const analyticsTeeSelect = document.querySelector("#analyticsTeeSelect");
 const analyticsSummary = document.querySelector("#analyticsSummary");
 const holeAnalyticsRows = document.querySelector("#holeAnalyticsRows");
+const analyticsLocked = document.querySelector("#analyticsLocked");
+const analyticsContent = document.querySelector("#analyticsContent");
 const catalogSearch = document.querySelector("#catalogSearch");
 const catalogStatus = document.querySelector("#catalogStatus");
 const catalogResults = document.querySelector("#catalogResults");
@@ -978,10 +980,38 @@ function startRoundCard(course = selectedRoundCourse()) {
 
 function renderAnalytics() {
   if (!analyticsCourseSelect || !analyticsTeeSelect || !analyticsSummary || !holeAnalyticsRows) return;
+  const record = scoringRecord();
+  if (!record.length) {
+    if (analyticsLocked) {
+      analyticsLocked.hidden = false;
+      analyticsLocked.innerHTML = `
+        <div class="analytics-lock-icon" aria-hidden="true">◎</div>
+        <p class="eyebrow">Locked until your first round</p>
+        <h2>Score a round to unlock analytics</h2>
+        <p>Hole-by-hole scoring patterns, averages, bests, worsts, and course breakdowns will appear here after you save one completed round.</p>
+        <div class="analytics-lock-steps">
+          <span>1. Import or add a course</span>
+          <span>2. Tap Add round</span>
+          <span>3. Save all 18 hole scores</span>
+        </div>
+      `;
+    }
+    if (analyticsContent) analyticsContent.hidden = true;
+    analyticsSummary.innerHTML = "";
+    holeAnalyticsRows.innerHTML = "";
+    return;
+  }
+
+  if (analyticsLocked) {
+    analyticsLocked.hidden = true;
+    analyticsLocked.innerHTML = "";
+  }
+  if (analyticsContent) analyticsContent.hidden = false;
+
   renderAnalyticsCourseSelect();
   renderAnalyticsTeeSelect();
   const course = courseById(analyticsTeeSelect.value);
-  const rounds = scoringRecord().filter((round) => round.courseId === course?.id && Array.isArray(round.holes));
+  const rounds = record.filter((round) => round.courseId === course?.id && Array.isArray(round.holes));
   if (!course) {
     analyticsSummary.innerHTML = metric("Rounds", "--") + metric("Avg score", "--") + metric("Best", "--") + metric("Worst", "--");
     holeAnalyticsRows.innerHTML = `<tr><td colspan="8">Add a completed round to unlock hole analytics.</td></tr>`;

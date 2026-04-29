@@ -570,6 +570,64 @@ h3 {
   gap: 16px;
 }
 
+.analytics-content {
+  display: grid;
+  gap: 16px;
+}
+
+.analytics-content[hidden],
+.analytics-locked[hidden] {
+  display: none;
+}
+
+.analytics-locked {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  padding: 24px;
+  border: 1px dashed #b7c6ba;
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(47, 111, 79, 0.1), transparent 48%),
+    var(--paper-strong);
+}
+
+.analytics-locked h2 {
+  margin: 0;
+}
+
+.analytics-locked p {
+  max-width: 620px;
+  margin: 0;
+}
+
+.analytics-lock-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--green-dark);
+  color: white;
+  font-size: 1.8rem;
+  font-weight: 900;
+}
+
+.analytics-lock-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.analytics-lock-steps span {
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: var(--blue-soft);
+  color: #1d4f70;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
 .analytics-filters {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) minmax(130px, 0.42fr);
