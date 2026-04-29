@@ -259,6 +259,21 @@ function handicapSummary() {
   return { record, ...indexFromRecord(record) };
 }
 
+function handicapChangesByRound(record) {
+  const chronological = [...record].sort((a, b) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt);
+  const changes = {};
+  for (let index = 0; index < chronological.length; index += 1) {
+    const before = indexFromRecord(chronological.slice(0, index).reverse()).index;
+    const after = indexFromRecord(chronological.slice(0, index + 1).reverse()).index;
+    changes[chronological[index].id] = {
+      before,
+      after,
+      delta: Number.isFinite(before) && Number.isFinite(after) ? round1(after - before) : null
+    };
+  }
+  return changes;
+}
+
 function route() {
   const id = location.hash.replace("#", "") || "dashboard";
   const activeId = views.some((view) => view.id === id) ? id : "dashboard";
@@ -406,6 +421,7 @@ function renderRounds() {
   const target = document.querySelector("#roundList");
   const record = scoringRecord();
   const currentHandicapIndex = handicapSummary().index;
+  const handicapChanges = handicapChangesByRound(record);
   if (!record.length) {
     target.innerHTML = `<div class="empty">No rounds yet. Add one from the top button.</div>`;
     return;
@@ -433,7 +449,7 @@ function renderRounds() {
           ${metric("Score", round.score)}
           ${metric("To par", formatToPar(round.toPar))}
           ${metric("Net score", netScore)}
-          ${metric("Course hcp", Number.isFinite(currentHandicapIndex) ? courseHandicap : "--", Number.isFinite(currentHandicapIndex) ? `<small>Index ${currentHandicapIndex.toFixed(1)}</small>` : "")}
+          ${metric("Handicap", round.differential.toFixed(1), renderHandicapChange(handicapChanges[round.id]))}
         </div>
         <button class="delete-button" type="button" data-delete-round="${round.id}">Delete</button>
       </article>
@@ -631,22 +647,17 @@ function renderCourseCard(course) {
   if (!Array.isArray(course.holes) || course.holes.length !== 18) return "";
   const out = course.holes.slice(0, 9);
   const inNine = course.holes.slice(9);
-  const currentIndex = handicapSummary().index;
-  const dotsByHole = Number.isFinite(currentIndex) ? handicapDotsByHole(course, currentIndex) : null;
   return `
     <div class="scorecard-mini" aria-label="${escapeHtml(course.name)} ${escapeHtml(course.tee)} hole details">
-      ${renderNine("Out", out, dotsByHole)}
-      ${renderNine("In", inNine, dotsByHole)}
+      ${renderNine("Out", out)}
+      ${renderNine("In", inNine)}
     </div>
   `;
 }
 
-function renderNine(label, holes, dotsByHole = null) {
+function renderNine(label, holes) {
   const parTotal = holes.reduce((sum, hole) => sum + (Number(hole.par) || 0), 0);
   const yardTotal = holes.reduce((sum, hole) => sum + (Number(hole.yards) || 0), 0);
-  const strokeTotal = dotsByHole
-    ? holes.reduce((sum, hole) => sum + (dotsByHole[hole.hole] || 0), 0)
-    : null;
   return `
     <div>
       <div class="scorecard-nine-label">${label}</div>
@@ -666,16 +677,12 @@ function renderNine(label, holes, dotsByHole = null) {
         <span>${yardTotal || "--"}</span>
       </div>
       <div class="scorecard-row">
-        <span>${dotsByHole ? "Stk" : "SI"}</span>
-        ${holes.map((hole) => `<span>${dotsByHole ? renderCourseStrokeDots(dotsByHole[hole.hole] || 0) : present(hole.handicap)}</span>`).join("")}
-        <span>${Number.isFinite(strokeTotal) ? strokeTotal || "--" : ""}</span>
+        <span>Hcp</span>
+        ${holes.map((hole) => `<span>${present(hole.handicap)}</span>`).join("")}
+        <span></span>
       </div>
     </div>
   `;
-}
-
-function renderCourseStrokeDots(count) {
-  return count ? renderStrokeDots(count) : "--";
 }
 
 function renderHoleEditor(preserveValues = true) {
@@ -808,6 +815,18 @@ function formatToPar(value) {
   if (!Number.isFinite(value)) return "--";
   if (value === 0) return "E";
   return value > 0 ? `+${value}` : String(value);
+}
+
+function renderHandicapChange(change) {
+  if (!change || !Number.isFinite(change.delta)) {
+    return `<small class="handicap-change neutral">First index</small>`;
+  }
+  if (change.delta === 0) {
+    return `<small class="handicap-change neutral">No change</small>`;
+  }
+  const className = change.delta < 0 ? "positive" : "negative";
+  const sign = change.delta > 0 ? "+" : "";
+  return `<small class="handicap-change ${className}">${sign}${change.delta.toFixed(1)}</small>`;
 }
 
 function escapeHtml(value) {
