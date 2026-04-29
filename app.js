@@ -101,11 +101,19 @@ const analyticsCourseSelect = document.querySelector("#analyticsCourseSelect");
 const analyticsTeeSelect = document.querySelector("#analyticsTeeSelect");
 const analyticsSummary = document.querySelector("#analyticsSummary");
 const holeAnalyticsRows = document.querySelector("#holeAnalyticsRows");
+const catalogSearch = document.querySelector("#catalogSearch");
+const catalogStatus = document.querySelector("#catalogStatus");
+const catalogResults = document.querySelector("#catalogResults");
 const holeRows = document.querySelector("#holeRows");
 const holeTotals = document.querySelector("#holeTotals");
 const strokeButtons = document.querySelector("#strokeButtons");
 const roundHoleGrid = document.querySelector("#roundHoleGrid");
 const selectedCourseIdsByName = {};
+const catalogState = {
+  entries: [],
+  loaded: false,
+  error: ""
+};
 const roundHoleState = {
   activeHole: 1,
   holes: []
@@ -307,6 +315,7 @@ function route() {
 function render() {
   renderHoleEditor();
   renderCourseSelect();
+  renderCourseCatalog();
   renderAnalytics();
   renderDashboard();
   renderRounds();
@@ -640,6 +649,150 @@ function renderCourses() {
     `;
     })
     .join("");
+}
+
+function renderCourseCatalog() {
+  if (!catalogStatus || !catalogResults || !catalogSearch) return;
+  const query = catalogSearch.value.trim().toLowerCase();
+  const matches = catalogState.entries
+    .filter((entry) => catalogEntrySearchText(entry).includes(query))
+    .slice(0, 12);
+
+  if (catalogState.error) {
+    catalogStatus.textContent = "Offline";
+    catalogResults.innerHTML = `<div class="empty">Course catalog is unavailable right now. Imported and manually added courses still work offline.</div>`;
+    return;
+  }
+
+  if (!catalogState.loaded) {
+    catalogStatus.textContent = "Loading";
+    catalogResults.innerHTML = `<div class="empty">Loading approved courses...</div>`;
+    return;
+  }
+
+  catalogStatus.textContent = `${catalogState.entries.length} approved`;
+  if (!matches.length) {
+    catalogResults.innerHTML = `<div class="empty">No approved catalog courses match that search.</div>`;
+    return;
+  }
+
+  catalogResults.innerHTML = matches.map(renderCatalogResult).join("");
+}
+
+function renderCatalogResult(entry) {
+  const imported = isCatalogEntryImported(entry);
+  const yards = totalYards(entry);
+  return `
+    <article class="catalog-result">
+      <div>
+        <div class="catalog-result-title">
+          <strong>${escapeHtml(entry.name)}</strong>
+          <span>${escapeHtml(entry.tee)}</span>
+        </div>
+        <div class="course-meta">
+          <span>${escapeHtml([entry.city, entry.state].filter(Boolean).join(", "))}</span>
+          <span>Rating ${Number(entry.rating).toFixed(1)}</span>
+          <span>Slope ${entry.slope}</span>
+          <span>Par ${totalPar(entry)}</span>
+          ${yards ? `<span>${yards.toLocaleString()} yards</span>` : ""}
+        </div>
+      </div>
+      <button class="${imported ? "secondary-action" : "primary-action"}" type="button" data-import-catalog="${escapeHtml(entry.catalogId)}" ${imported ? "disabled" : ""}>
+        ${imported ? "Imported" : "Import"}
+      </button>
+    </article>
+  `;
+}
+
+function catalogEntrySearchText(entry) {
+  return [
+    entry.name,
+    entry.tee,
+    entry.city,
+    entry.state,
+    entry.country,
+    Number(entry.rating).toFixed(1),
+    entry.slope,
+    totalPar(entry),
+    totalYards(entry)
+  ].filter(Boolean).join(" ").toLowerCase();
+}
+
+function isCatalogEntryImported(entry) {
+  return state.courses.some((course) => {
+    if (course.catalogId && course.catalogId === entry.catalogId) return true;
+    return course.name.trim().toLowerCase() === entry.name.trim().toLowerCase()
+      && String(course.tee).trim().toLowerCase() === String(entry.tee).trim().toLowerCase();
+  });
+}
+
+function importCatalogCourse(catalogId) {
+  const entry = catalogState.entries.find((item) => item.catalogId === catalogId);
+  if (!entry || isCatalogEntryImported(entry)) return;
+  const course = normalizeCourse({
+    id: uid(),
+    catalogId: entry.catalogId,
+    catalogSource: entry.source || "catalog",
+    catalogStatus: entry.status || "approved",
+    catalogUpdatedAt: entry.updatedAt || null,
+    name: entry.name,
+    city: entry.city || "",
+    state: entry.state || "",
+    country: entry.country || "",
+    tee: entry.tee,
+    rating: entry.rating,
+    slope: entry.slope,
+    par: totalPar(entry),
+    holes: entry.holes.map((hole) => ({ ...hole }))
+  });
+  state.courses.push(course);
+  selectedCourseIdsByName[course.name] = course.id;
+  saveState();
+  render();
+}
+
+function normalizeCatalogEntry(entry) {
+  const holes = Array.isArray(entry.holes) ? entry.holes.map((hole, index) => ({
+    hole: Number(hole.hole) || index + 1,
+    par: Number(hole.par) || 4,
+    yards: Number(hole.yards) || null,
+    handicap: Number(hole.handicap) || index + 1
+  })) : [];
+  if (!entry.catalogId || entry.status !== "approved" || holes.length !== 18) return null;
+  return normalizeCourse({
+    catalogId: String(entry.catalogId),
+    status: entry.status,
+    source: entry.source || "catalog",
+    submittedBy: entry.submittedBy || "",
+    updatedAt: entry.updatedAt || "",
+    name: String(entry.courseName || entry.name || "").trim(),
+    city: String(entry.city || "").trim(),
+    state: String(entry.state || "").trim(),
+    country: String(entry.country || "").trim(),
+    tee: String(entry.tee || "").trim(),
+    rating: Number(entry.rating),
+    slope: Number(entry.slope),
+    par: Number(entry.par) || holes.reduce((sum, hole) => sum + hole.par, 0),
+    holes
+  });
+}
+
+async function loadCourseCatalog() {
+  try {
+    const response = await fetch("./public/course-catalog.json");
+    if (!response.ok) throw new Error(`Catalog request failed: ${response.status}`);
+    const payload = await response.json();
+    catalogState.entries = (payload.courses || [])
+      .map(normalizeCatalogEntry)
+      .filter(Boolean)
+      .sort((a, b) => a.name.localeCompare(b.name) || a.tee.localeCompare(b.tee));
+    catalogState.loaded = true;
+    catalogState.error = "";
+  } catch (error) {
+    catalogState.loaded = true;
+    catalogState.error = error.message || "Catalog unavailable";
+  }
+  renderCourseCatalog();
 }
 
 function courseGroups() {
@@ -1150,6 +1303,7 @@ analyticsCourseSelect.addEventListener("change", () => {
 });
 
 analyticsTeeSelect.addEventListener("change", renderAnalytics);
+catalogSearch?.addEventListener("input", renderCourseCatalog);
 
 courseForm.addEventListener("input", (event) => {
   if (event.target.closest(".hole-table")) updateHoleTotals();
@@ -1240,10 +1394,12 @@ document.addEventListener("click", (event) => {
   const roundHoleButton = event.target.closest("[data-round-hole]");
   const prevHoleButton = event.target.closest("[data-prev-hole]");
   const nextHoleButton = event.target.closest("[data-next-hole]");
+  const catalogImportButton = event.target.closest("[data-import-catalog]");
   if (strokeButton) setActiveHoleScore(Number(strokeButton.dataset.stroke));
   if (roundHoleButton) setActiveRoundHole(Number(roundHoleButton.dataset.roundHole));
   if (prevHoleButton) setActiveRoundHole(roundHoleState.activeHole - 1);
   if (nextHoleButton) setActiveRoundHole(roundHoleState.activeHole + 1);
+  if (catalogImportButton) importCatalogCourse(catalogImportButton.dataset.importCatalog);
   if (roundButton) {
     if (!confirm("Delete this round from local storage?")) return;
     state.rounds = state.rounds.filter((round) => round.id !== roundButton.dataset.deleteRound);
@@ -1315,4 +1471,5 @@ if ("serviceWorker" in navigator) {
 renderHoleEditor();
 document.querySelector("#todayLabel").textContent = todayLabel();
 route();
+loadCourseCatalog();
 showInitialSetup();

@@ -894,6 +894,50 @@ h3 {
   display: none;
 }
 
+.catalog-panel {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.catalog-results {
+  display: grid;
+  gap: 8px;
+}
+
+.catalog-result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-strong);
+}
+
+.catalog-result-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.catalog-result-title strong {
+  font-size: 1rem;
+}
+
+.catalog-result-title span {
+  color: var(--muted);
+  font-weight: 850;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
 .course-meta-grid {
   display: grid;
   grid-template-columns: minmax(180px, 1.3fr) minmax(120px, 0.7fr) repeat(2, minmax(110px, 0.5fr));
@@ -1335,6 +1379,10 @@ dialog form {
 
   .course-performance {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .catalog-result {
+    grid-template-columns: 1fr;
   }
 
   .hero-panel {

@@ -159,6 +159,20 @@
               Add course
             </button>
           </div>
+          <section class="panel catalog-panel" aria-labelledby="catalog-heading">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Shared catalog</p>
+                <h2 id="catalog-heading">Find course</h2>
+              </div>
+              <span id="catalogStatus" class="pill">Loading</span>
+            </div>
+            <label>
+              Search approved courses
+              <input id="catalogSearch" type="search" placeholder="Course, city, state, or tee" autocomplete="off" />
+            </label>
+            <div id="catalogResults" class="catalog-results" aria-live="polite"></div>
+          </section>
           <div id="courseList" class="course-list"></div>
           <form id="courseForm" class="panel course-form is-collapsed">
             <div class="course-meta-grid">

@@ -7,6 +7,7 @@ A private, offline-capable golf handicap tracker inspired by the utility of apps
 - Static PWA: `index.html`, `styles.css`, `app.js`, `public/manifest.webmanifest`, and `sw.js`
 - Local-only storage for courses, hole-by-hole tee data, and rounds
 - Course tee sets include an 18-hole card with par, yardage, and per-hole handicap index
+- Reviewed static course catalog in `public/course-catalog.json` for importing approved tee sets
 - Estimated WHS handicap index calculation from completed hole scores, course rating, slope, and PCC
 - GitHub Pages workflow in `.github/workflows/deploy-pages.yml`
 
@@ -71,3 +72,15 @@ On Android Chrome:
 
 After the first successful visit, the PWA shell is available offline on that device.
 Courses and rounds are stored in the browser's local storage on that device. There is no backend or remote database.
+
+## Shared course catalog
+
+ParTrack includes a reviewed static catalog at `public/course-catalog.json`. The app loads approved entries from that file, lets users search by course, city/state, or tee, and imports the selected tee set into local storage. Imported courses become private device data just like manually added courses.
+
+To contribute a course without adding a backend:
+
+1. Open a GitHub issue or pull request with the course name, location, tee name, rating, slope, total par, total yardage, and hole-by-hole par, yardage, and handicap index.
+2. The course can be reviewed and added to `public/course-catalog.json` with `status: "approved"`.
+3. Once merged and deployed, it appears in the in-app course search for everyone.
+
+The catalog format includes future-friendly fields such as `catalogId`, `status`, `source`, `submittedBy`, and `updatedAt` so a later backend submission flow can promote approved records into the same shape.
