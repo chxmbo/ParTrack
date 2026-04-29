@@ -28,6 +28,7 @@
 
 html {
   background: var(--bg);
+  overflow-x: hidden;
 }
 
 body {
@@ -38,6 +39,7 @@ body {
     linear-gradient(315deg, rgba(186, 86, 63, 0.07), transparent 32%),
     var(--bg);
   color: var(--ink);
+  overflow-x: hidden;
 }
 
 button,
@@ -627,6 +629,11 @@ h3 {
   padding: 16px;
 }
 
+.round-item > *,
+.course-item > * {
+  min-width: 0;
+}
+
 .course-item {
   grid-template-columns: minmax(0, 1fr) auto;
 }
@@ -676,6 +683,8 @@ h3 {
   display: grid;
   gap: 12px;
   margin-top: 14px;
+  width: 100%;
+  max-width: 100%;
 }
 
 .course-performance {
@@ -862,6 +871,7 @@ h3 {
 .hole-table-wrap,
 .scorecard-mini {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .hole-table {
@@ -1316,6 +1326,7 @@ dialog form {
   .round-item,
   .course-item {
     grid-template-columns: 1fr;
+    overflow: hidden;
   }
 
   .metric-grid {
@@ -1332,5 +1343,42 @@ dialog form {
 
   dialog form {
     padding: 18px 14px calc(22px + env(safe-area-inset-bottom));
+  }
+
+  .scorecard-mini {
+    gap: 10px;
+    overflow-x: hidden;
+  }
+
+  .scorecard-row {
+    grid-template-columns: 36px repeat(9, minmax(0, 1fr)) 36px;
+    min-width: 0;
+    width: 100%;
+    font-size: 0.78rem;
+  }
+
+  .scorecard-row > span {
+    min-width: 0;
+    padding: 5px 2px;
+  }
+
+  .scorecard-row > span:first-child {
+    font-size: 0.7rem;
+  }
+
+  .scorecard-dot-row > span {
+    min-height: 22px;
+    padding: 2px;
+  }
+
+  .score-mark {
+    min-width: 24px;
+    height: 24px;
+    font-size: 0.78rem;
+  }
+
+  .score-mark.eagle,
+  .score-mark.double-bogey {
+    border-width: 4px;
   }
 }
