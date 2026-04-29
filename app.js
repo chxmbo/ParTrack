@@ -553,6 +553,8 @@ function renderCourses() {
       const course = group.courses.find((item) => item.id === selectedId) || group.courses[0];
       selectedCourseIdsByName[group.name] = course.id;
       const yards = totalYards(course);
+      const currentIndex = handicapSummary().index;
+      const courseHandicap = Number.isFinite(currentIndex) ? playingHandicap(course, currentIndex) : null;
       return `
       <article class="course-item">
         <div>
@@ -570,6 +572,7 @@ function renderCourses() {
             <span>Slope ${course.slope}</span>
             <span>Par ${totalPar(course)}</span>
             ${yards ? `<span>${yards.toLocaleString()} yards</span>` : ""}
+            ${Number.isFinite(courseHandicap) ? `<span>Course hcp ${courseHandicap}</span>` : ""}
           </div>
           ${renderCourseStats(course)}
           ${renderCourseCard(course)}
@@ -647,17 +650,22 @@ function renderCourseCard(course) {
   if (!Array.isArray(course.holes) || course.holes.length !== 18) return "";
   const out = course.holes.slice(0, 9);
   const inNine = course.holes.slice(9);
+  const currentIndex = handicapSummary().index;
+  const dotsByHole = Number.isFinite(currentIndex) ? handicapDotsByHole(course, currentIndex) : null;
   return `
     <div class="scorecard-mini" aria-label="${escapeHtml(course.name)} ${escapeHtml(course.tee)} hole details">
-      ${renderNine("Out", out)}
-      ${renderNine("In", inNine)}
+      ${renderNine("Out", out, dotsByHole)}
+      ${renderNine("In", inNine, dotsByHole)}
     </div>
   `;
 }
 
-function renderNine(label, holes) {
+function renderNine(label, holes, dotsByHole = null) {
   const parTotal = holes.reduce((sum, hole) => sum + (Number(hole.par) || 0), 0);
   const yardTotal = holes.reduce((sum, hole) => sum + (Number(hole.yards) || 0), 0);
+  const strokeTotal = dotsByHole
+    ? holes.reduce((sum, hole) => sum + (dotsByHole[hole.hole] || 0), 0)
+    : null;
   return `
     <div>
       <div class="scorecard-nine-label">${label}</div>
@@ -677,12 +685,16 @@ function renderNine(label, holes) {
         <span>${yardTotal || "--"}</span>
       </div>
       <div class="scorecard-row">
-        <span>Hcp</span>
-        ${holes.map((hole) => `<span>${present(hole.handicap)}</span>`).join("")}
-        <span></span>
+        <span>${dotsByHole ? "Stk" : "SI"}</span>
+        ${holes.map((hole) => `<span>${dotsByHole ? renderCourseStrokeDots(dotsByHole[hole.hole] || 0) : present(hole.handicap)}</span>`).join("")}
+        <span>${Number.isFinite(strokeTotal) ? strokeTotal || "--" : ""}</span>
       </div>
     </div>
   `;
+}
+
+function renderCourseStrokeDots(count) {
+  return count ? renderStrokeDots(count) : "--";
 }
 
 function renderHoleEditor(preserveValues = true) {
