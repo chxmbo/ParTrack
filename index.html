@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#132b25" />
+    <meta name="theme-color" content="#132b25" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#132b25" media="(prefers-color-scheme: dark)" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Local Handicap Tracker" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <title>Local Handicap Tracker</title>
+    <link rel="manifest" href="./public/manifest.webmanifest" />
+    <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" sizes="192x192" href="./public/icons/icon-192.png" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="rail">
+        <a class="brand" href="#dashboard" aria-label="ParTrack dashboard">
+          <img src="./assets/logo.svg" alt="ParTrack" />
+        </a>
+        <nav class="nav" aria-label="Primary">
+          <a href="#dashboard" data-view-link="dashboard">Dashboard</a>
+          <a href="#rounds" data-view-link="rounds">Rounds</a>
+          <a href="#courses" data-view-link="courses">Courses</a>
+          <a href="#settings" data-view-link="settings">Settings</a>
+        </nav>
+        <div class="rail-status">
+          <span>Private storage</span>
+          <strong>Offline PWA</strong>
+        </div>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <div class="topbar-title">
+            <a class="topbar-brand" href="#dashboard" aria-label="ParTrack dashboard">
+              <img src="./assets/icon.svg" alt="" />
+              <span>ParTrack</span>
+            </a>
+            <p class="eyebrow">Private handicap tracker</p>
+            <h1 id="view-title">Dashboard</h1>
+          </div>
+          <div class="topbar-meta" aria-label="App status">
+            <span id="todayLabel"></span>
+            <span>Local data</span>
+          </div>
+          <button class="primary-action" type="button" data-open-round>
+            <span aria-hidden="true">+</span>
+            Add round
+          </button>
+        </header>
+
+        <section id="dashboard" class="view active" aria-labelledby="view-title">
+          <div class="dashboard-grid">
+            <article class="hero-panel">
+              <div class="hero-copy">
+                <div>
+                  <p class="eyebrow">Estimated index</p>
+                  <strong id="handicapIndex">--</strong>
+                  <span id="handicapStatus">Add 3 completed rounds to establish an index.</span>
+                </div>
+                <div class="hero-progress" aria-label="Progress toward a full 20-round index">
+                  <div class="progress-ring" style="--progress: 0">
+                    <span id="twentyProgressLabel">0/20</span>
+                  </div>
+                  <div>
+                    <p class="eyebrow">Scoring window</p>
+                    <span id="twentyProgressText">Start a 20-round record</span>
+                  </div>
+                </div>
+              </div>
+              <div class="course-visual" aria-hidden="true">
+                <div class="fairway"></div>
+                <div class="green"></div>
+                <div class="pin"></div>
+                <div class="bunker bunker-one"></div>
+                <div class="bunker bunker-two"></div>
+                <div class="score-float">
+                  <span>Best diff</span>
+                  <strong id="heroBestDiff">--</strong>
+                </div>
+              </div>
+            </article>
+
+            <article class="stat-card" data-tone="blue">
+              <span>Rounds</span>
+              <strong id="roundCount">0</strong>
+              <small id="recentWindow">0 in current window</small>
+            </article>
+            <article class="stat-card" data-tone="gold">
+              <span>Best handicap</span>
+              <strong id="bestDifferential">--</strong>
+              <small id="bestRoundLabel">No rounds yet</small>
+            </article>
+            <article class="stat-card" data-tone="coral">
+              <span>Average score</span>
+              <strong id="averageScore">--</strong>
+              <small id="averagePutts">No completed rounds</small>
+            </article>
+          </div>
+
+          <div class="content-grid">
+            <section class="panel chart-panel" aria-labelledby="trend-heading">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Last 20</p>
+                  <h2 id="trend-heading">Handicap trend</h2>
+                </div>
+                <span id="countToTwenty" class="pill">20 to full index</span>
+              </div>
+              <canvas id="trendChart" width="900" height="320" aria-label="Handicap chart"></canvas>
+            </section>
+
+            <section class="panel" aria-labelledby="used-heading">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Index inputs</p>
+                  <h2 id="used-heading">Counting scores</h2>
+                </div>
+              </div>
+              <div id="countingScores" class="counting-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="rounds" class="view" aria-labelledby="rounds-heading">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Scoring record</p>
+              <h2 id="rounds-heading">Rounds</h2>
+            </div>
+            <button class="secondary-action" type="button" data-export>Export JSON</button>
+          </div>
+          <div id="roundList" class="round-list"></div>
+        </section>
+
+        <section id="courses" class="view" aria-labelledby="courses-heading">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Tee sets</p>
+              <h2 id="courses-heading">Courses</h2>
+            </div>
+            <button class="primary-action" type="button" data-toggle-course-form>
+              <span aria-hidden="true">+</span>
+              Add course
+            </button>
+          </div>
+          <div id="courseList" class="course-list"></div>
+          <form id="courseForm" class="panel course-form is-collapsed">
+            <div class="course-meta-grid">
+              <label>
+                Course
+                <input name="name" autocomplete="organization" required />
+              </label>
+              <label>
+                Tee
+                <input name="tee" placeholder="Blue" required />
+              </label>
+              <label>
+                Rating
+                <input name="rating" type="number" min="50" max="90" step="0.1" required />
+              </label>
+              <label>
+                Slope
+                <input name="slope" type="number" min="55" max="155" step="1" required />
+              </label>
+            </div>
+
+            <section class="hole-editor" aria-labelledby="hole-editor-heading">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Scorecard</p>
+                  <h3 id="hole-editor-heading">Hole-by-hole tee data</h3>
+                </div>
+                <button class="secondary-action" type="button" data-reset-holes>Reset card</button>
+              </div>
+              <div class="hole-table-wrap">
+                <table class="hole-table">
+                  <thead>
+                    <tr>
+                      <th>Hole</th>
+                      <th>Par</th>
+                      <th>Yards</th>
+                      <th>Hcp index</th>
+                    </tr>
+                  </thead>
+                  <tbody id="holeRows"></tbody>
+                </table>
+              </div>
+              <div id="holeTotals" class="hole-totals" aria-live="polite"></div>
+            </section>
+
+            <div class="form-actions">
+              <button class="secondary-action" type="button" data-cancel-course-form>Cancel</button>
+              <button class="primary-action" type="submit">Save course</button>
+            </div>
+          </form>
+        </section>
+
+        <section id="settings" class="view" aria-labelledby="settings-heading">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Device data</p>
+              <h2 id="settings-heading">Settings</h2>
+            </div>
+          </div>
+          <div class="settings-grid">
+            <article class="panel">
+              <h3>Offline</h3>
+              <p id="offlineStatus">Checking service worker...</p>
+            </article>
+            <article class="panel">
+              <h3>Data</h3>
+              <p>Your rounds and courses live in this browser until you export or clear them.</p>
+              <div class="button-row">
+                <button class="secondary-action" type="button" data-seed>Load sample data</button>
+                <button class="danger-action" type="button" data-clear>Clear local data</button>
+              </div>
+            </article>
+            <article class="panel">
+              <h3>WHS estimate</h3>
+              <p>This app calculates a local estimate from completed hole scores, course rating, slope, and PCC. Official posting still belongs in your authorized handicap service.</p>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="roundDialog">
+      <form id="roundForm" method="dialog">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">Round card</p>
+            <h2>Add round</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-round aria-label="Close">×</button>
+        </div>
+
+        <div class="round-setup">
+          <label>
+            Date
+            <input name="date" type="date" required />
+          </label>
+          <label>
+            Course
+            <select name="courseId" id="courseSelect" required></select>
+          </label>
+          <input name="pcc" type="hidden" value="0" />
+        </div>
+
+        <div id="selectedCourseMeta" class="selected-course"></div>
+        <section class="score-entry" aria-labelledby="active-hole-heading">
+          <div class="active-hole-card">
+            <button class="icon-button" type="button" data-prev-hole aria-label="Previous hole">‹</button>
+            <div>
+              <p class="eyebrow">Hole</p>
+              <h3 id="active-hole-heading"><span id="roundHoleNumber">1</span></h3>
+            </div>
+            <div>
+              <p class="eyebrow">Yards</p>
+              <strong id="roundHoleYards">--</strong>
+            </div>
+            <div>
+              <p class="eyebrow">Par</p>
+              <strong id="roundHolePar">--</strong>
+            </div>
+            <div>
+              <p class="eyebrow">Hcp</p>
+              <strong id="roundHoleHandicap">--</strong>
+            </div>
+            <button class="icon-button" type="button" data-next-hole aria-label="Next hole">›</button>
+          </div>
+
+          <div class="score-picker" aria-label="Score">
+            <div class="score-picker-head">
+              <h3>Score</h3>
+              <strong id="roundTotalScore">--</strong>
+            </div>
+            <div id="strokeButtons" class="stroke-buttons"></div>
+          </div>
+
+          <div id="roundHoleGrid" class="round-hole-grid"></div>
+        </section>
+
+        <div class="dialog-actions">
+          <button class="secondary-action" type="button" data-close-round>Cancel</button>
+          <button class="primary-action" type="submit">Save round</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 128" role="img" aria-labelledby="title">
+  <title id="title">ParTrack logo</title>
+  <rect width="520" height="128" rx="24" fill="#173f31"/>
+  <g transform="translate(30 19)">
+    <path d="M10 78c16-4 23-16 30-31 7-15 19-24 42-18-4 22-15 39-31 48-12 7-26 8-41 1Z" fill="#dff0df"/>
+    <circle cx="72" cy="31" r="9" fill="#f1d28b"/>
+    <path d="M46 18v63" stroke="#ffffff" stroke-width="7" stroke-linecap="round"/>
+    <path d="M50 19h30L50 36Z" fill="#b64d35"/>
+    <circle cx="46" cy="81" r="7" fill="#ffffff"/>
+  </g>
+  <text x="130" y="80" fill="#ffffff" font-family="Inter, Arial, sans-serif" font-size="54" font-weight="850">ParTrack</text>
+  <path d="M132 95h246" stroke="#dff0df" stroke-width="6" stroke-linecap="round"/>
+</svg>

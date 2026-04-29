@@ -1,0 +1,10 @@
+{
+  "name": "partrack",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "generate-icons": "node scripts/generate-icons.js",
+    "prebuild": "node scripts/generate-icons.js",
+    "build": "node scripts/build.js"
+  }
+}

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">ParTrack icon</title>
+  <rect width="128" height="128" rx="24" fill="#173f31"/>
+  <path d="M26 87c17-4 24-18 31-33 7-16 20-26 45-20-4 23-16 42-33 52-13 7-27 8-43 1Z" fill="#dff0df"/>
+  <circle cx="91" cy="38" r="10" fill="#f1d28b"/>
+  <path d="M62 26v67" stroke="#ffffff" stroke-width="7" stroke-linecap="round"/>
+  <path d="M66 27h31L66 45Z" fill="#b64d35"/>
+  <circle cx="62" cy="93" r="8" fill="#ffffff"/>
+</svg>
