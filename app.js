@@ -4,9 +4,11 @@ const todayIso = () => new Date().toISOString().slice(0, 10);
 const todayLabel = () => new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric" }).format(new Date());
 const round1 = (value) => Math.round((value + Number.EPSILON) * 10) / 10;
 const uid = () => crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
-const defaultPars = [4, 4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 5, 4];
-const defaultYards = [385, 412, 168, 536, 397, 421, 177, 548, 404, 390, 426, 181, 552, 405, 432, 172, 541, 410];
-const defaultStrokeIndexes = [11, 3, 17, 7, 1, 9, 15, 5, 13, 12, 4, 18, 8, 2, 10, 16, 6, 14];
+const defaultPars = [4, 4, 4, 3, 4, 4, 5, 3, 4, 4, 3, 4, 4, 5, 4, 4, 3, 4];
+const defaultYards = [401, 382, 344, 152, 343, 384, 515, 183, 420, 372, 198, 327, 386, 529, 454, 396, 170, 430];
+const defaultStrokeIndexes = [5, 9, 11, 13, 15, 1, 17, 3, 7, 6, 12, 18, 10, 14, 2, 8, 16, 4];
+const foxHillLadiesPars = [4, 4, 4, 3, 4, 4, 5, 3, 4, 4, 3, 4, 4, 5, 5, 4, 3, 5];
+const foxHillLadiesStrokeIndexes = [7, 3, 9, 15, 11, 1, 13, 17, 5, 6, 16, 10, 2, 8, 14, 4, 12, 18];
 
 function createHoleCard(pars = defaultPars, yards = defaultYards, strokeIndexes = defaultStrokeIndexes) {
   return Array.from({ length: 18 }, (_, index) => ({
@@ -18,9 +20,13 @@ function createHoleCard(pars = defaultPars, yards = defaultYards, strokeIndexes 
 }
 
 const sampleCourses = [
-  { id: uid(), name: "Wasatch Links", tee: "Blue", rating: 71.8, slope: 129, holes: createHoleCard() },
-  { id: uid(), name: "Cedar Ridge", tee: "White", rating: 69.7, slope: 123, holes: createHoleCard([4, 4, 3, 5, 4, 3, 4, 5, 4, 4, 4, 3, 5, 4, 4, 3, 5, 4], [361, 398, 142, 501, 374, 168, 386, 514, 392, 376, 402, 155, 521, 389, 417, 149, 508, 393]) },
-  { id: uid(), name: "Desert Mesa", tee: "Gold", rating: 73.1, slope: 136, holes: createHoleCard([4, 5, 3, 4, 4, 5, 3, 4, 4, 4, 4, 3, 5, 4, 4, 3, 5, 4], [423, 561, 184, 441, 413, 572, 201, 429, 438, 414, 447, 196, 589, 428, 452, 188, 574, 436]) }
+  { id: uid(), name: "Fox Hill Club", tee: "Black", rating: 72.9, slope: 140, holes: createHoleCard(defaultPars, [437, 404, 389, 172, 375, 413, 572, 211, 461, 393, 220, 370, 412, 567, 479, 428, 183, 459]) },
+  { id: uid(), name: "Fox Hill Club", tee: "Blue", rating: 72.2, slope: 134, holes: createHoleCard(defaultPars, [412, 393, 359, 162, 375, 394, 572, 196, 432, 383, 209, 364, 399, 545, 467, 422, 183, 444]) },
+  { id: uid(), name: "Fox Hill Club", tee: "White", rating: 71.0, slope: 131, holes: createHoleCard(defaultPars, defaultYards) },
+  { id: uid(), name: "Fox Hill Club", tee: "White/Green", rating: 69.5, slope: 125, holes: createHoleCard(defaultPars, [389, 382, 344, 142, 343, 384, 498, 134, 420, 372, 188, 327, 386, 487, 423, 333, 170, 389]) },
+  { id: uid(), name: "Fox Hill Club", tee: "Green", rating: 68.1, slope: 121, holes: createHoleCard(defaultPars, [389, 371, 316, 142, 324, 322, 498, 134, 407, 343, 188, 311, 358, 487, 423, 333, 170, 389]) },
+  { id: uid(), name: "Fox Hill Club", tee: "Red", rating: 71.2, slope: 130, holes: createHoleCard(foxHillLadiesPars, [362, 371, 306, 114, 311, 322, 421, 110, 323, 337, 124, 268, 358, 458, 423, 308, 156, 380], foxHillLadiesStrokeIndexes) },
+  { id: uid(), name: "Fox Hill Club", tee: "Gold", rating: 66.1, slope: 122, holes: createHoleCard(foxHillLadiesPars, [329, 292, 306, 74, 298, 245, 362, 110, 323, 277, 124, 268, 284, 401, 338, 234, 125, 317], foxHillLadiesStrokeIndexes) }
 ];
 
 function createScoredHoleCard(course, targetScore) {
@@ -56,21 +62,26 @@ function createScoredHoleCard(course, targetScore) {
   return holes.sort((a, b) => a.hole - b.hole);
 }
 
-const seedRounds = (courses) => [
-  { course: courses[0], date: "2026-03-02", score: 88, pcc: 0 },
-  { course: courses[1], date: "2026-03-10", score: 84, pcc: 0 },
-  { course: courses[2], date: "2026-03-17", score: 91, pcc: 1 },
-  { course: courses[0], date: "2026-03-25", score: 83, pcc: 0 },
-  { course: courses[1], date: "2026-04-04", score: 86, pcc: 0 },
-  { course: courses[2], date: "2026-04-11", score: 82, pcc: -1 }
-].map((round) => ({
+const seedRounds = (courses) => {
+  const whiteTee = courses.find((course) => course.name === "Fox Hill Club" && course.tee === "White") || courses[0];
+  return [
+    { course: whiteTee, date: "2026-03-01", score: 112, pcc: 0 },
+    { course: whiteTee, date: "2026-03-08", score: 108, pcc: 0 },
+    { course: whiteTee, date: "2026-03-15", score: 104, pcc: 0 },
+    { course: whiteTee, date: "2026-03-22", score: 101, pcc: 0 },
+    { course: whiteTee, date: "2026-03-29", score: 99, pcc: 0 },
+    { course: whiteTee, date: "2026-04-05", score: 97, pcc: 0 },
+    { course: whiteTee, date: "2026-04-12", score: 95, pcc: 0 },
+    { course: whiteTee, date: "2026-04-19", score: 94, pcc: 0 }
+  ].map((round) => ({
   id: uid(),
   createdAt: Date.now(),
   courseId: round.course.id,
   date: round.date,
   pcc: round.pcc,
   holes: createScoredHoleCard(round.course, round.score)
-}));
+  }));
+};
 
 const state = loadState();
 
@@ -93,7 +104,8 @@ const roundHoleState = {
 };
 
 function loadState() {
-  const fallback = { courses: [...sampleCourses], rounds: [] };
+  const fallbackCourses = sampleCourses.map(normalizeCourse);
+  const fallback = { courses: fallbackCourses, rounds: seedRounds(fallbackCourses) };
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY));
     if (stored && Array.isArray(stored.courses) && Array.isArray(stored.rounds)) {
