@@ -4,6 +4,16 @@ const supabaseAnonKey = SUPABASE_CONFIG.VITE_SUPABASE_ANON_KEY || "";
 const supabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 let supabase = null;
 
+function authRedirectUrl() {
+  const url = new URL(window.location.href);
+  url.hash = "";
+  url.search = "";
+  if (!url.pathname.endsWith("/")) {
+    url.pathname = url.pathname.replace(/\/[^/]*$/, "/");
+  }
+  return url.toString();
+}
+
 async function createSupabaseClient() {
   if (!supabaseConfigured || supabase) return supabase;
   const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.43.4");
@@ -1832,7 +1842,14 @@ authForm?.addEventListener("submit", async (event) => {
   const displayName = String(formData.get("displayName") || "").trim();
   setAuthStatus(authMode === "signup" ? "Creating account..." : "Signing in...");
   const result = authMode === "signup"
-    ? await supabase.auth.signUp({ email, password, options: { data: { display_name: displayName } } })
+    ? await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { display_name: displayName },
+        emailRedirectTo: authRedirectUrl()
+      }
+    })
     : await supabase.auth.signInWithPassword({ email, password });
   if (result.error) {
     setAuthStatus(result.error.message);

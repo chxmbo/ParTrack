@@ -81,15 +81,23 @@ ParTrack is still a GitHub Pages-hosted static PWA. Supabase provides auth, data
 1. Create or open a Supabase project.
 2. In Supabase SQL Editor, run [`supabase/schema.sql`](supabase/schema.sql).
 3. In Authentication -> Providers, enable Email.
-4. In Authentication -> URL Configuration, add your GitHub Pages URL to allowed redirect URLs, for example `https://USERNAME.github.io/ParTrack/`.
-5. In GitHub repo Settings -> Secrets and variables -> Actions, add:
+4. In Authentication -> URL Configuration, set the Site URL to your GitHub Pages app URL, for example `https://USERNAME.github.io/ParTrack/`.
+5. In the same URL Configuration screen, add redirect URLs for the hosted app and local testing:
+
+```text
+https://USERNAME.github.io/ParTrack/
+http://localhost:4173/
+```
+
+You can also add wildcard versions such as `https://USERNAME.github.io/ParTrack/**` if you later introduce deeper routes.
+6. In GitHub repo Settings -> Secrets and variables -> Actions, add:
 
 ```text
 VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
 VITE_SUPABASE_ANON_KEY=YOUR_PUBLIC_ANON_KEY
 ```
 
-6. Push to `main` or run the Pages workflow manually.
+7. Push to `main` or run the Pages workflow manually.
 
 The build writes these values into `dist/env-config.js`. The anon key is public by design; data privacy depends on the RLS policies in `supabase/schema.sql`, not on hiding this key.
 
