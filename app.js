@@ -90,6 +90,9 @@ const links = [...document.querySelectorAll("[data-view-link]")];
 const title = document.querySelector("#view-title");
 const roundDialog = document.querySelector("#roundDialog");
 const roundForm = document.querySelector("#roundForm");
+const setupDialog = document.querySelector("#setupDialog");
+const setupForm = document.querySelector("#setupForm");
+const homeCourseSelect = document.querySelector("#homeCourseSelect");
 const courseForm = document.querySelector("#courseForm");
 const courseFormToggle = document.querySelector("[data-toggle-course-form]");
 const courseSelect = document.querySelector("#courseSelect");
@@ -110,12 +113,13 @@ const roundHoleState = {
 
 function loadState() {
   const fallbackCourses = sampleCourses.map(normalizeCourse);
-  const fallback = { courses: fallbackCourses, rounds: seedRounds(fallbackCourses) };
+  const fallback = { profile: { name: "", homeCourse: "", setupComplete: false }, courses: fallbackCourses, rounds: seedRounds(fallbackCourses) };
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY));
     if (stored && Array.isArray(stored.courses) && Array.isArray(stored.rounds)) {
       stored.courses = stored.courses.map(normalizeCourse);
       stored.rounds = stored.rounds.map((round) => normalizeRound(round, stored.courses));
+      stored.profile = stored.profile || { name: "", homeCourse: "", setupComplete: false };
       return stored;
     }
   } catch {
@@ -307,24 +311,36 @@ function render() {
   renderDashboard();
   renderRounds();
   renderCourses();
+  renderProfile();
 }
 
 function renderDashboard() {
   const summary = handicapSummary();
   const record = summary.record;
-  const best = [...record].sort((a, b) => a.differential - b.differential)[0];
+  const handicapChanges = handicapChangesByRound(record);
+  const latestRound = record[0];
+  const bestScoreRound = [...record].sort((a, b) => a.score - b.score || a.toPar - b.toPar)[0];
   const scores = record.map((round) => Number(round.score));
   const toPar = record.map((round) => Number(round.toPar)).filter(Number.isFinite);
+  const favoriteCourse = favoriteCourseName(record);
+  const latestChange = latestRound ? handicapChanges[latestRound.id] : null;
+  const bestNetToPar = bestScoreRound && Number.isFinite(summary.index)
+    ? bestScoreRound.score - playingHandicap(bestScoreRound.course, summary.index) - totalPar(bestScoreRound.course)
+    : null;
 
   document.querySelector("#handicapIndex").textContent = summary.index === null ? "--" : summary.index.toFixed(1);
   document.querySelector("#handicapStatus").textContent = indexStatus(summary);
   document.querySelector("#roundCount").textContent = record.length;
   document.querySelector("#recentWindow").textContent = `${summary.recent.length} in current window`;
-  document.querySelector("#bestDifferential").textContent = best ? best.differential.toFixed(1) : "--";
-  document.querySelector("#heroBestDiff").textContent = best ? best.differential.toFixed(1) : "--";
-  document.querySelector("#bestRoundLabel").textContent = best ? `${best.course.name}, ${formatDate(best.date)}` : "No rounds yet";
+  document.querySelector("#bestScore").textContent = bestScoreRound ? bestScoreRound.score : "--";
+  document.querySelector("#bestScoreLabel").textContent = bestScoreRound
+    ? `${formatToPar(bestScoreRound.toPar)} gross${Number.isFinite(bestNetToPar) ? ` · ${formatToPar(bestNetToPar)} net` : ""}`
+    : "No rounds yet";
   document.querySelector("#averageScore").textContent = scores.length ? round1(scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : "--";
   document.querySelector("#averagePutts").textContent = toPar.length ? `${formatToPar(round1(toPar.reduce((a, b) => a + b, 0) / toPar.length))} avg to par` : "No completed rounds";
+  document.querySelector("#heroAvgScore").textContent = scores.length ? round1(scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : "--";
+  document.querySelector("#heroFavoriteCourse").textContent = favoriteCourse || "--";
+  document.querySelector("#heroLatestChange").textContent = latestHandicapChangeLabel(latestChange);
   document.querySelector("#countToTwenty").textContent = summary.recent.length >= 20 ? "Full 20-round index" : `${20 - summary.recent.length} to full index`;
   document.querySelector("#twentyProgressLabel").textContent = `${Math.min(summary.recent.length, 20)}/20`;
   document.querySelector("#twentyProgressText").textContent = summary.recent.length >= 20
@@ -334,6 +350,18 @@ function renderDashboard() {
 
   renderCountingScores(summary);
   drawTrend(summary.recent);
+}
+
+function favoriteCourseName(record) {
+  const counts = new Map();
+  for (const round of record) counts.set(round.course.name, (counts.get(round.course.name) || 0) + 1);
+  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] || "";
+}
+
+function latestHandicapChangeLabel(change) {
+  if (!change || !Number.isFinite(change.delta)) return "--";
+  if (change.delta === 0) return "E";
+  return `${change.delta > 0 ? "+" : ""}${change.delta.toFixed(1)}`;
 }
 
 function indexStatus(summary) {
@@ -816,7 +844,7 @@ function renderAnalytics() {
         <th scope="row">${hole.hole}</th>
         <td>${present(hole.par)}</td>
         <td>${present(hole.yards)}</td>
-        <td>${scoresForHole.length}</td>
+        <td>${present(hole.handicap)}</td>
         <td>${Number.isFinite(average) ? average.toFixed(1) : "--"}</td>
         <td>${Number.isFinite(toPar) ? formatToPar(toPar) : "--"}</td>
         <td>${scoresForHole.length ? Math.min(...scoresForHole) : "--"}</td>
@@ -992,6 +1020,76 @@ function setCourseFormOpen(isOpen) {
   }
 }
 
+function renderProfile() {
+  const summary = document.querySelector("#profileSummary");
+  if (!summary) return;
+  const name = state.profile?.name;
+  const homeCourse = state.profile?.homeCourse;
+  summary.textContent = name || homeCourse
+    ? `${name || "Player"}${homeCourse ? ` · ${homeCourse}` : ""}`
+    : "No player profile saved.";
+}
+
+function renderHomeCourseSelect() {
+  if (!homeCourseSelect) return;
+  const names = courseNames();
+  homeCourseSelect.innerHTML = names
+    .map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`)
+    .join("");
+  if (names.includes(state.profile?.homeCourse)) homeCourseSelect.value = state.profile.homeCourse;
+}
+
+function openSetupDialog() {
+  if (!setupDialog || !setupForm) return;
+  renderHomeCourseSelect();
+  setupForm.elements.playerName.value = state.profile?.name || "";
+  if (state.profile?.homeCourse) setupForm.elements.homeCourse.value = state.profile.homeCourse;
+  setupDialog.showModal();
+}
+
+function showInitialSetup() {
+  if (!state.profile?.setupComplete) openSetupDialog();
+}
+
+function saveProfile(formData, setupComplete = true) {
+  state.profile = {
+    name: String(formData.get("playerName") || "").trim(),
+    homeCourse: String(formData.get("homeCourse") || "").trim(),
+    setupComplete
+  };
+  saveState();
+  renderProfile();
+}
+
+async function imageFromForm(formData, key) {
+  const file = formData.get(key);
+  if (!(file instanceof File) || !file.size) return null;
+  return imageFileToDataUrl(file);
+}
+
+function imageFileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("error", () => reject(reader.error));
+    reader.addEventListener("load", () => {
+      const original = reader.result;
+      const image = new Image();
+      image.addEventListener("error", () => resolve(original));
+      image.addEventListener("load", () => {
+        const maxSide = 1200;
+        const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+        canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.76));
+      });
+      image.src = original;
+    });
+    reader.readAsDataURL(file);
+  });
+}
+
 document.querySelectorAll("[data-open-round]").forEach((button) => {
   button.addEventListener("click", () => {
     roundForm.reset();
@@ -1038,7 +1136,20 @@ document.querySelector("[data-cancel-course-form]").addEventListener("click", ()
   setCourseFormOpen(false);
 });
 
-roundForm.addEventListener("submit", (event) => {
+document.querySelector("[data-open-setup]").addEventListener("click", openSetupDialog);
+
+document.querySelector("[data-skip-setup]").addEventListener("click", () => {
+  saveProfile(new FormData(setupForm), true);
+  setupDialog.close();
+});
+
+setupForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  saveProfile(new FormData(setupForm), true);
+  setupDialog.close();
+});
+
+roundForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!state.courses.length) return;
   const formData = new FormData(roundForm);
@@ -1048,7 +1159,8 @@ roundForm.addEventListener("submit", (event) => {
     return;
   }
   const holes = roundHoleState.holes.map((hole) => ({ ...hole, strokes: Number(hole.strokes) }));
-  state.rounds.push({
+  const photo = await imageFromForm(formData, "roundPhoto");
+  const round = {
     id: uid(),
     createdAt: Date.now(),
     date: formData.get("date"),
@@ -1056,13 +1168,15 @@ roundForm.addEventListener("submit", (event) => {
     pcc: numeric(formData, "pcc") || 0,
     score: holes.reduce((sum, hole) => sum + hole.strokes, 0),
     holes
-  });
+  };
+  if (photo) round.photo = photo;
+  state.rounds.push(round);
   saveState();
   roundDialog.close();
   render();
 });
 
-courseForm.addEventListener("submit", (event) => {
+courseForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const formData = new FormData(courseForm);
   const holes = parseHoleCard(formData);
@@ -1071,7 +1185,8 @@ courseForm.addEventListener("submit", (event) => {
     holeTotals.textContent = holeError;
     return;
   }
-  state.courses.push({
+  const photo = await imageFromForm(formData, "coursePhoto");
+  const course = {
     id: uid(),
     name: String(formData.get("name")).trim(),
     tee: String(formData.get("tee")).trim(),
@@ -1079,7 +1194,9 @@ courseForm.addEventListener("submit", (event) => {
     slope: numeric(formData, "slope"),
     par: holes.reduce((sum, hole) => sum + hole.par, 0),
     holes
-  });
+  };
+  if (photo) course.photo = photo;
+  state.courses.push(course);
   saveState();
   courseForm.reset();
   renderHoleEditor();
@@ -1169,3 +1286,4 @@ if ("serviceWorker" in navigator) {
 renderHoleEditor();
 document.querySelector("#todayLabel").textContent = todayLabel();
 route();
+showInitialSetup();

@@ -81,8 +81,18 @@
                 <div class="bunker bunker-one"></div>
                 <div class="bunker bunker-two"></div>
                 <div class="score-float">
-                  <span>Best diff</span>
-                  <strong id="heroBestDiff">--</strong>
+                  <div>
+                    <span>Avg score</span>
+                    <strong id="heroAvgScore">--</strong>
+                  </div>
+                  <div>
+                    <span>Favorite course</span>
+                    <strong id="heroFavoriteCourse">--</strong>
+                  </div>
+                  <div>
+                    <span>Latest hcp change</span>
+                    <strong id="heroLatestChange">--</strong>
+                  </div>
                 </div>
               </div>
             </article>
@@ -93,9 +103,9 @@
               <small id="recentWindow">0 in current window</small>
             </article>
             <article class="stat-card" data-tone="gold">
-              <span>Best handicap</span>
-              <strong id="bestDifferential">--</strong>
-              <small id="bestRoundLabel">No rounds yet</small>
+              <span>Best score</span>
+              <strong id="bestScore">--</strong>
+              <small id="bestScoreLabel">No rounds yet</small>
             </article>
             <article class="stat-card" data-tone="coral">
               <span>Average score</span>
@@ -123,27 +133,26 @@
                   <h2 id="used-heading">Counting scores</h2>
                 </div>
               </div>
+              <p class="panel-note" id="countingScoresNote">Your index uses the lowest differentials from the most recent scoring window. With fewer than 20 rounds, WHS-style rules count fewer scores and may apply an early-round adjustment.</p>
               <div id="countingScores" class="counting-list"></div>
             </section>
           </div>
         </section>
 
-        <section id="rounds" class="view" aria-labelledby="rounds-heading">
+        <section id="rounds" class="view" aria-label="Rounds">
           <div class="section-heading">
             <div>
               <p class="eyebrow">Scoring record</p>
-              <h2 id="rounds-heading">Rounds</h2>
             </div>
             <button class="secondary-action" type="button" data-export>Export JSON</button>
           </div>
           <div id="roundList" class="round-list"></div>
         </section>
 
-        <section id="courses" class="view" aria-labelledby="courses-heading">
+        <section id="courses" class="view" aria-label="Courses">
           <div class="section-heading">
             <div>
               <p class="eyebrow">Tee sets</p>
-              <h2 id="courses-heading">Courses</h2>
             </div>
             <button class="primary-action" type="button" data-toggle-course-form>
               <span aria-hidden="true">+</span>
@@ -168,6 +177,10 @@
               <label>
                 Slope
                 <input name="slope" type="number" min="55" max="155" step="1" required />
+              </label>
+              <label>
+                Scorecard photo
+                <input name="coursePhoto" type="file" accept="image/*" />
               </label>
             </div>
 
@@ -202,11 +215,10 @@
           </form>
         </section>
 
-        <section id="analytics" class="view" aria-labelledby="analytics-heading">
+        <section id="analytics" class="view" aria-label="Analytics">
           <div class="section-heading">
             <div>
               <p class="eyebrow">Scoring patterns</p>
-              <h2 id="analytics-heading">Analytics</h2>
             </div>
           </div>
           <div class="panel analytics-panel">
@@ -228,7 +240,7 @@
                     <th>Hole</th>
                     <th>Par</th>
                     <th>Yards</th>
-                    <th>Rounds</th>
+                    <th>Hcp</th>
                     <th>Avg</th>
                     <th>To par</th>
                     <th>Best</th>
@@ -241,14 +253,20 @@
           </div>
         </section>
 
-        <section id="settings" class="view" aria-labelledby="settings-heading">
+        <section id="settings" class="view" aria-label="Settings">
           <div class="section-heading">
             <div>
               <p class="eyebrow">Device data</p>
-              <h2 id="settings-heading">Settings</h2>
             </div>
           </div>
           <div class="settings-grid">
+            <article class="panel">
+              <h3>Profile</h3>
+              <p id="profileSummary">No player profile saved.</p>
+              <div class="button-row">
+                <button class="secondary-action" type="button" data-open-setup>Edit profile</button>
+              </div>
+            </article>
             <article class="panel">
               <h3>Offline</h3>
               <p id="offlineStatus">Checking service worker...</p>
@@ -295,6 +313,10 @@
           </label>
           <input name="pcc" type="hidden" value="0" />
         </div>
+        <label>
+          Scorecard photo
+          <input name="roundPhoto" type="file" accept="image/*" />
+        </label>
 
         <div id="selectedCourseMeta" class="selected-course"></div>
         <section class="score-entry" aria-labelledby="active-hole-heading">
@@ -333,6 +355,31 @@
         <div class="dialog-actions">
           <button class="secondary-action" type="button" data-close-round>Cancel</button>
           <button class="primary-action" type="submit">Save round</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="setupDialog">
+      <form id="setupForm" method="dialog">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">First setup</p>
+            <h2>Welcome to ParTrack</h2>
+          </div>
+        </div>
+        <div class="form-grid">
+          <label>
+            Your name
+            <input name="playerName" autocomplete="name" required />
+          </label>
+          <label>
+            Home course
+            <select name="homeCourse" id="homeCourseSelect" required></select>
+          </label>
+        </div>
+        <div class="dialog-actions">
+          <button class="secondary-action" type="button" data-skip-setup>Skip</button>
+          <button class="primary-action" type="submit">Save profile</button>
         </div>
       </form>
     </dialog>
