@@ -1,4 +1,4 @@
-const CACHE_NAME = "local-handicap-tracker-v9";
+const CACHE_NAME = "local-handicap-tracker-v10";
 const APP_SHELL = [
   "./",
   "./index.html",

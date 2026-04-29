@@ -324,8 +324,12 @@ function renderDashboard() {
   const toPar = record.map((round) => Number(round.toPar)).filter(Number.isFinite);
   const favoriteCourse = favoriteCourseName(record);
   const latestChange = latestRound ? handicapChanges[latestRound.id] : null;
-  const bestNetToPar = bestScoreRound && Number.isFinite(summary.index)
-    ? bestScoreRound.score - playingHandicap(bestScoreRound.course, summary.index) - totalPar(bestScoreRound.course)
+  const bestScoreIndex = bestScoreRound ? handicapChanges[bestScoreRound.id]?.after : null;
+  const bestScorePlayingHandicap = bestScoreRound && Number.isFinite(bestScoreIndex)
+    ? playingHandicap(bestScoreRound.course, bestScoreIndex)
+    : null;
+  const bestNetToPar = bestScoreRound && Number.isFinite(bestScorePlayingHandicap)
+    ? bestScoreRound.score - bestScorePlayingHandicap - totalPar(bestScoreRound.course)
     : null;
 
   document.querySelector("#handicapIndex").textContent = summary.index === null ? "--" : summary.index.toFixed(1);
@@ -334,7 +338,7 @@ function renderDashboard() {
   document.querySelector("#recentWindow").textContent = `${summary.recent.length} in current window`;
   document.querySelector("#bestScore").textContent = bestScoreRound ? bestScoreRound.score : "--";
   document.querySelector("#bestScoreLabel").textContent = bestScoreRound
-    ? `${formatToPar(bestScoreRound.toPar)} gross${Number.isFinite(bestNetToPar) ? ` · ${formatToPar(bestNetToPar)} net` : ""}`
+    ? bestScoreDetail(bestScoreRound, bestNetToPar, bestScoreIndex, bestScorePlayingHandicap)
     : "No rounds yet";
   document.querySelector("#averageScore").textContent = scores.length ? round1(scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : "--";
   document.querySelector("#averagePutts").textContent = toPar.length ? `${formatToPar(round1(toPar.reduce((a, b) => a + b, 0) / toPar.length))} avg to par` : "No completed rounds";
@@ -362,6 +366,17 @@ function latestHandicapChangeLabel(change) {
   if (!change || !Number.isFinite(change.delta)) return "--";
   if (change.delta === 0) return "E";
   return `${change.delta > 0 ? "+" : ""}${change.delta.toFixed(1)}`;
+}
+
+function bestScoreDetail(round, netToPar, handicapIndex, playingHandicapValue) {
+  const parts = [
+    `${round.course.name} · ${round.course.tee} · ${formatDate(round.date)}`,
+    `Par ${totalPar(round.course)} · ${formatToPar(round.toPar)} gross`
+  ];
+  if (Number.isFinite(netToPar)) parts.push(`${formatToPar(netToPar)} net`);
+  if (Number.isFinite(handicapIndex)) parts.push(`Index ${handicapIndex.toFixed(1)}`);
+  if (Number.isFinite(playingHandicapValue)) parts.push(`CH ${playingHandicapValue}`);
+  return parts.join(" · ");
 }
 
 function indexStatus(summary) {
@@ -815,11 +830,11 @@ function renderAnalytics() {
   if (!analyticsCourseSelect || !analyticsTeeSelect || !analyticsSummary || !holeAnalyticsRows) return;
   renderAnalyticsCourseSelect();
   renderAnalyticsTeeSelect();
-  const course = courseById(analyticsTeeSelect.value) || coursesByName(analyticsCourseSelect.value)[0];
+  const course = courseById(analyticsTeeSelect.value);
   const rounds = scoringRecord().filter((round) => round.courseId === course?.id && Array.isArray(round.holes));
   if (!course) {
     analyticsSummary.innerHTML = metric("Rounds", "--") + metric("Avg score", "--") + metric("Best", "--") + metric("Worst", "--");
-    holeAnalyticsRows.innerHTML = "";
+    holeAnalyticsRows.innerHTML = `<tr><td colspan="8">Add a completed round to unlock hole analytics.</td></tr>`;
     return;
   }
 
@@ -856,7 +871,7 @@ function renderAnalytics() {
 
 function renderAnalyticsCourseSelect() {
   const previousName = analyticsCourseSelect.value;
-  const names = courseNames();
+  const names = playedCourseNames();
   analyticsCourseSelect.innerHTML = names
     .map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`)
     .join("");
@@ -865,11 +880,25 @@ function renderAnalyticsCourseSelect() {
 
 function renderAnalyticsTeeSelect() {
   const previousTeeId = analyticsTeeSelect.value;
-  const tees = coursesByName(analyticsCourseSelect.value);
+  const tees = playedTeesByName(analyticsCourseSelect.value);
   analyticsTeeSelect.innerHTML = tees
     .map((course) => `<option value="${course.id}">${escapeHtml(course.tee)}</option>`)
     .join("");
   if (tees.some((course) => course.id === previousTeeId)) analyticsTeeSelect.value = previousTeeId;
+  if (!analyticsTeeSelect.value && tees[0]) analyticsTeeSelect.value = tees[0].id;
+}
+
+function playedCourseNames() {
+  const names = new Set(scoringRecord().filter((round) => Array.isArray(round.holes)).map((round) => round.course.name));
+  return [...names].sort((a, b) => a.localeCompare(b));
+}
+
+function playedTeesByName(name) {
+  const tees = new Map();
+  scoringRecord()
+    .filter((round) => Array.isArray(round.holes) && round.course.name === name)
+    .forEach((round) => tees.set(round.course.id, round.course));
+  return [...tees.values()].sort((a, b) => a.tee.localeCompare(b.tee));
 }
 
 function renderRoundScoringUI() {
