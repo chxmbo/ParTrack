@@ -691,10 +691,7 @@ function renderCatalogResult(group) {
           ${location ? `<span>${escapeHtml(location)}</span>` : ""}
         </div>
         <div class="catalog-tee-list">
-          ${group.entries.map((entry) => {
-            const yards = totalYards(entry);
-            return `<span>${escapeHtml(entry.tee)} · ${Number(entry.rating).toFixed(1)}/${entry.slope} · Par ${totalPar(entry)}${yards ? ` · ${yards.toLocaleString()} yds` : ""}</span>`;
-          }).join("")}
+          ${group.entries.map((entry) => renderCatalogTeeSwatch(entry)).join("")}
         </div>
       </div>
       <button class="${allImported ? "secondary-action" : "primary-action"}" type="button" data-import-catalog-course="${escapeHtml(group.key)}" ${allImported ? "disabled" : ""}>
@@ -702,6 +699,36 @@ function renderCatalogResult(group) {
       </button>
     </article>
   `;
+}
+
+function renderCatalogTeeSwatch(entry) {
+  const yards = totalYards(entry);
+  const label = `${entry.tee}: ${Number(entry.rating).toFixed(1)}/${entry.slope}, Par ${totalPar(entry)}${yards ? `, ${yards.toLocaleString()} yards` : ""}`;
+  return `
+    <span class="tee-swatch ${teeColorClass(entry.tee)}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">
+      <span>${escapeHtml(teeShortLabel(entry.tee))}</span>
+    </span>
+  `;
+}
+
+function teeShortLabel(tee) {
+  return String(tee || "")
+    .split("/")
+    .map((part) => part.trim()[0] || "")
+    .join("/")
+    .toUpperCase();
+}
+
+function teeColorClass(tee) {
+  const normalized = String(tee || "").toLowerCase();
+  if (normalized.includes("black")) return "tee-swatch-black";
+  if (normalized.includes("blue")) return "tee-swatch-blue";
+  if (normalized.includes("white") && normalized.includes("green")) return "tee-swatch-white-green";
+  if (normalized.includes("white")) return "tee-swatch-white";
+  if (normalized.includes("green")) return "tee-swatch-green";
+  if (normalized.includes("red")) return "tee-swatch-red";
+  if (normalized.includes("gold") || normalized.includes("yellow")) return "tee-swatch-gold";
+  return "tee-swatch-neutral";
 }
 
 function catalogCourseGroups() {
