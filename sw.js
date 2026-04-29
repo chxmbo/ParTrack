@@ -1,9 +1,10 @@
-const CACHE_NAME = "local-handicap-tracker-v18";
+const CACHE_NAME = "local-handicap-tracker-v20";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
+  "./env-config.js",
   "./public/",
   "./public/index.html",
   "./public/course-catalog.json",

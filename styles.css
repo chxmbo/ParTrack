@@ -53,6 +53,46 @@ button {
   cursor: pointer;
 }
 
+[hidden] {
+  display: none !important;
+}
+
+.auth-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.auth-card {
+  width: min(100%, 440px);
+  display: grid;
+  gap: 14px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.auth-card img {
+  width: 178px;
+  height: auto;
+}
+
+.auth-card h2 {
+  margin: 0;
+  font-size: clamp(2rem, 8vw, 3rem);
+  letter-spacing: 0;
+}
+
+.auth-status {
+  min-height: 22px;
+  margin: 0;
+  color: var(--muted);
+  font-weight: 750;
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: 236px minmax(0, 1fr);
@@ -298,6 +338,10 @@ h3 {
   background: rgba(255, 255, 255, 0.86);
   color: var(--ink);
   box-shadow: var(--shadow-soft);
+}
+
+.logout-action {
+  min-height: 42px;
 }
 
 .danger-action {
@@ -742,6 +786,43 @@ h3 {
   margin-bottom: 8px;
 }
 
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.status-badge.approved {
+  background: var(--mint);
+  color: var(--green-dark);
+}
+
+.status-badge.unverified {
+  background: var(--gold-soft);
+  color: #6f4a08;
+}
+
+.status-badge.private {
+  background: var(--blue-soft);
+  color: #1d4a66;
+}
+.status-badge.not-eligible {
+  background: var(--coral-soft);
+  color: #953923;
+}
+
+
+.course-note {
+  margin: 10px 0;
+  color: var(--muted);
+  font-weight: 700;
+}
+
 .round-title strong,
 .course-title strong {
   font-size: 1.05rem;
@@ -930,10 +1011,36 @@ h3 {
   font-weight: 800;
 }
 
+.card-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.card-actions .secondary-action,
+.card-actions .delete-button {
+  min-height: 36px;
+  box-shadow: none;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+}
+
+.toggle-field {
+  display: flex;
+  min-height: 54px;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.toggle-field input {
+  width: 20px;
+  height: 20px;
 }
 
 .compact-form {
@@ -1391,8 +1498,13 @@ dialog form {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .card-actions,
   .delete-button {
     justify-self: end;
+  }
+
+  .card-actions {
+    flex-direction: row;
   }
 }
 

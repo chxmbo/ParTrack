@@ -1,3 +1,22 @@
+const SUPABASE_CONFIG = window.PARTRACK_ENV || {};
+const supabaseUrl = SUPABASE_CONFIG.VITE_SUPABASE_URL || "";
+const supabaseAnonKey = SUPABASE_CONFIG.VITE_SUPABASE_ANON_KEY || "";
+const supabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+let supabase = null;
+
+async function createSupabaseClient() {
+  if (!supabaseConfigured || supabase) return supabase;
+  const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.43.4");
+  supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  });
+  return supabase;
+}
+
 const STORAGE_KEY = "partrack:v1";
 const LEGACY_STORAGE_KEY = "loop-handicap:v1";
 const todayIso = () => new Date().toISOString().slice(0, 10);
@@ -57,6 +76,11 @@ const links = [...document.querySelectorAll("[data-view-link]")];
 const title = document.querySelector("#view-title");
 const roundDialog = document.querySelector("#roundDialog");
 const roundForm = document.querySelector("#roundForm");
+const authScreen = document.querySelector("#authScreen");
+const appShell = document.querySelector(".app-shell");
+const authForm = document.querySelector("#authForm");
+const authStatus = document.querySelector("#authStatus");
+const syncStatus = document.querySelector("#syncStatus");
 const setupDialog = document.querySelector("#setupDialog");
 const setupForm = document.querySelector("#setupForm");
 const courseForm = document.querySelector("#courseForm");
@@ -72,11 +96,16 @@ const analyticsContent = document.querySelector("#analyticsContent");
 const catalogSearch = document.querySelector("#catalogSearch");
 const catalogStatus = document.querySelector("#catalogStatus");
 const catalogResults = document.querySelector("#catalogResults");
+const cloudCourseSearch = document.querySelector("#cloudCourseSearch");
 const holeRows = document.querySelector("#holeRows");
 const holeTotals = document.querySelector("#holeTotals");
 const strokeButtons = document.querySelector("#strokeButtons");
 const roundHoleGrid = document.querySelector("#roundHoleGrid");
 const selectedCourseIdsByName = {};
+let editingRoundId = null;
+let authMode = "login";
+let remoteSession = null;
+let remoteCourseSearchTerm = "";
 const catalogState = {
   entries: [],
   loaded: false,
@@ -120,6 +149,232 @@ function normalizeProfile(profile = {}) {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function setSyncStatus(message) {
+  if (syncStatus) syncStatus.textContent = message;
+}
+
+function hasRemoteSession() {
+  return Boolean(supabase && remoteSession?.user);
+}
+
+function remoteUserId() {
+  return remoteSession?.user?.id || null;
+}
+
+function normalizeRemoteCourse(course, tee) {
+  const holes = Array.isArray(tee.holes) && tee.holes.length === 18
+    ? tee.holes.map((hole, index) => ({
+      hole: Number(hole.hole) || index + 1,
+      par: Number(hole.par) || 4,
+      yards: Number(hole.yards) || null,
+      handicap: Number(hole.handicap) || index + 1
+    }))
+    : createLegacyHoleCard(tee.par);
+  return normalizeCourse({
+    id: tee.id,
+    backendCourseId: course.id,
+    backendTeeId: tee.id,
+    status: course.status || "pending",
+    isPublicUnverified: Boolean(course.is_public_unverified),
+    createdBy: course.created_by || null,
+    city: course.city || "",
+    state: course.state || "",
+    country: course.country || "US",
+    name: course.name,
+    tee: tee.name,
+    rating: Number(tee.rating),
+    slope: Number(tee.slope),
+    par: Number(tee.par) || totalPar({ holes }),
+    holes
+  });
+}
+
+function remoteCourseStatus(course) {
+  if (course.status === "approved") return "Approved";
+  if (course.isPublicUnverified) return "Unverified";
+  return "Private Draft";
+}
+
+function remoteCourseBadge(course) {
+  if (!course.backendCourseId) return "";
+  const status = remoteCourseStatus(course);
+  const tone = status === "Approved" ? "approved" : status === "Unverified" ? "unverified" : "private";
+  return `<span class="status-badge ${tone}">${status}</span>`;
+}
+
+function setSignedInUi(isSignedIn) {
+  if (!supabase) {
+    authScreen.hidden = true;
+    appShell.hidden = false;
+    setSyncStatus("Local data");
+    return;
+  }
+  authScreen.hidden = isSignedIn;
+  appShell.hidden = !isSignedIn;
+  setSyncStatus(isSignedIn ? "Supabase sync" : "Sign in to sync");
+}
+
+async function ensureRemoteProfile(displayName = "") {
+  if (!hasRemoteSession()) return null;
+  const user = remoteSession.user;
+  const fallbackName = displayName || user.user_metadata?.display_name || user.email?.split("@")[0] || "";
+  const { data, error } = await supabase
+    .from("profiles")
+    .upsert({ id: user.id, display_name: fallbackName }, { onConflict: "id" })
+    .select()
+    .single();
+  if (error) throw error;
+  state.profile = {
+    name: data.display_name || fallbackName,
+    setupComplete: true
+  };
+  saveState();
+  return data;
+}
+
+async function loadRemoteData() {
+  if (!hasRemoteSession()) return;
+  setSyncStatus("Syncing...");
+  const userId = remoteUserId();
+  const [{ data: profile, error: profileError }, { data: courses, error: coursesError }, { data: rounds, error: roundsError }] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
+    supabase.from("courses").select("*, tees(*)").order("name"),
+    supabase.from("rounds").select("*").eq("user_id", userId).order("played_at", { ascending: false })
+  ]);
+  if (profileError) throw profileError;
+  if (coursesError) throw coursesError;
+  if (roundsError) throw roundsError;
+
+  state.profile = {
+    name: profile?.display_name || remoteSession.user.email?.split("@")[0] || "",
+    setupComplete: true
+  };
+  state.courses = (courses || [])
+    .flatMap((course) => (course.tees || []).map((tee) => normalizeRemoteCourse(course, tee)));
+  state.rounds = (rounds || [])
+    .map((round) => ({
+      id: round.id,
+      createdAt: new Date(round.created_at || Date.now()).getTime(),
+      date: round.played_at,
+      courseId: round.tee_id,
+      backendCourseId: round.course_id,
+      backendTeeId: round.tee_id,
+      pcc: Number(round.pcc) || 0,
+      score: Number(round.gross_score) || null,
+      notes: round.notes || "",
+      holes: Array.isArray(round.holes) ? round.holes : []
+    }))
+    .map((round) => normalizeRound(round, state.courses));
+  saveState();
+  setSyncStatus("Synced");
+}
+
+function mapCourseToRemote(course, formData, holes) {
+  return {
+    name: String(formData.get("name")).trim(),
+    city: String(formData.get("city") || "").trim() || null,
+    state: String(formData.get("state") || "").trim() || null,
+    country: String(formData.get("country") || "US").trim() || "US",
+    status: "pending",
+    is_public_unverified: formData.get("shareUnverified") === "on",
+    created_by: remoteUserId()
+  };
+}
+
+function mapTeeToRemote(formData, holes) {
+  return {
+    name: String(formData.get("tee")).trim(),
+    gender: String(formData.get("gender") || "").trim() || null,
+    par: holes.reduce((sum, hole) => sum + hole.par, 0),
+    rating: numeric(formData, "rating"),
+    slope: numeric(formData, "slope"),
+    yardage: holes.map((hole) => Number(hole.yards)).filter(Number.isFinite).reduce((sum, yards) => sum + yards, 0),
+    holes
+  };
+}
+
+async function saveRemoteCourse(formData, holes) {
+  const { data: course, error: courseError } = await supabase
+    .from("courses")
+    .insert(mapCourseToRemote(null, formData, holes))
+    .select()
+    .single();
+  if (courseError) throw courseError;
+  const { data: tee, error: teeError } = await supabase
+    .from("tees")
+    .insert({ ...mapTeeToRemote(formData, holes), course_id: course.id })
+    .select()
+    .single();
+  if (teeError) throw teeError;
+  return normalizeRemoteCourse(course, tee);
+}
+
+async function saveLocalCourseToRemote(course) {
+  if (!hasRemoteSession() || course?.backendCourseId) return course;
+  const coursePayload = {
+    name: course.name,
+    city: course.city || null,
+    state: course.state || null,
+    country: course.country || "US",
+    status: "pending",
+    is_public_unverified: false,
+    created_by: remoteUserId()
+  };
+  const { data: remoteCourse, error: courseError } = await supabase
+    .from("courses")
+    .insert(coursePayload)
+    .select()
+    .single();
+  if (courseError) throw courseError;
+  const { data: remoteTee, error: teeError } = await supabase
+    .from("tees")
+    .insert({
+      course_id: remoteCourse.id,
+      name: course.tee,
+      par: totalPar(course),
+      rating: Number(course.rating),
+      slope: Number(course.slope),
+      yardage: totalYards(course),
+      holes: course.holes
+    })
+    .select()
+    .single();
+  if (teeError) throw teeError;
+  const syncedCourse = normalizeRemoteCourse(remoteCourse, remoteTee);
+  const oldId = course.id;
+  state.courses = state.courses.map((item) => item.id === oldId ? syncedCourse : item);
+  state.rounds = state.rounds.map((round) => round.courseId === oldId ? { ...round, courseId: syncedCourse.id } : round);
+  selectedCourseIdsByName[syncedCourse.name] = syncedCourse.id;
+  saveState();
+  return syncedCourse;
+}
+
+async function saveRemoteRound(round, existingRound = null) {
+  let course = courseById(round.courseId);
+  if (course && !course.backendCourseId) {
+    course = await saveLocalCourseToRemote(course);
+    round.courseId = course.id;
+  }
+  const payload = {
+    user_id: remoteUserId(),
+    course_id: course?.backendCourseId || round.backendCourseId || null,
+    tee_id: course?.backendTeeId || round.courseId,
+    played_at: round.date,
+    gross_score: round.score,
+    adjusted_gross_score: round.score,
+    differential: differential(round, course),
+    pcc: Number(round.pcc) || 0,
+    holes: round.holes,
+    notes: round.notes || null
+  };
+  const query = existingRound
+    ? supabase.from("rounds").update(payload).eq("id", existingRound.id).select().single()
+    : supabase.from("rounds").insert(payload).select().single();
+  const { data, error } = await query;
+  if (error) throw error;
+  return data;
 }
 
 function normalizeCourse(course) {
@@ -203,6 +458,35 @@ function roundScore(round) {
   return Number(round.score) || null;
 }
 
+function scoredHoleCount(round) {
+  if (Array.isArray(round.holes) && round.holes.length) {
+    return round.holes.filter(hasHoleScore).length;
+  }
+  return Number.isFinite(Number(round.score)) ? 18 : 0;
+}
+
+function isValidRatingSlope(course) {
+  return Boolean(course) && Number.isFinite(Number(course.rating)) && Number.isFinite(Number(course.slope)) && Number(course.slope) > 0;
+}
+
+function handicapEligibility(round, course = courseById(round.courseId)) {
+  const holesPlayed = scoredHoleCount(round);
+  const coursePar = course ? totalPar(course) : 0;
+  const base = { eligible: false, status: "not-eligible", label: "Not eligible", reason: "Missing course" };
+
+  if (round.handicapExcluded) {
+    return { ...base, status: "excluded", label: "Excluded", reason: "Excluded from handicap" };
+  }
+
+  if (!course) return base;
+  if (holesPlayed < 9) return { ...base, reason: "Fewer than 9 holes" };
+  if (holesPlayed < 18) return { ...base, reason: holesPlayed === 9 ? "9-hole posting not supported yet" : "Incomplete round" };
+  if (!isValidRatingSlope(course)) return { ...base, reason: "Missing rating/slope" };
+  if (coursePar < 60) return { ...base, reason: "Par below 60" };
+
+  return { eligible: true, status: "eligible", label: "Eligible", reason: "Counts toward index" };
+}
+
 function roundToPar(round) {
   if (!Array.isArray(round.holes) || !round.holes.length) return null;
   const score = roundScore(round);
@@ -228,11 +512,30 @@ function roundWithMath(round) {
   };
 }
 
-function scoringRecord() {
+function completedRoundRecord() {
   return state.rounds
     .map(roundWithMath)
-    .filter((round) => round.course && Number.isFinite(round.score) && Number.isFinite(round.differential))
+    .filter((round) => round.course && Number.isFinite(round.score))
     .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
+}
+
+function scoringRecord() {
+  return completedRoundRecord()
+    .filter((round) => handicapEligibility(round, round.course).eligible && Number.isFinite(round.differential));
+}
+
+function handicapStatusByRound(rounds) {
+  const includedIds = new Set(scoringRecord().slice(0, 20).map((round) => round.id));
+  return Object.fromEntries(rounds.map((round) => {
+    const status = handicapEligibility(round, round.course);
+    if (status.eligible && includedIds.has(round.id)) {
+      return [round.id, { ...status, status: "included", label: "Qualified", reason: "In current handicap window" }];
+    }
+    if (status.eligible) {
+      return [round.id, { ...status, status: "replaced", label: "Replaced", reason: "Older than latest 20" }];
+    }
+    return [round.id, status];
+  }));
 }
 
 function indexRule(count) {
@@ -488,9 +791,11 @@ function drawTrend(rounds) {
 
 function renderRounds() {
   const target = document.querySelector("#roundList");
-  const record = scoringRecord();
+  const record = completedRoundRecord();
+  const handicapRecord = scoringRecord();
   const currentHandicapIndex = handicapSummary().index;
-  const handicapChanges = handicapChangesByRound(record);
+  const handicapChanges = handicapChangesByRound(handicapRecord);
+  const statusByRound = handicapStatusByRound(record);
   if (!record.length) {
     target.innerHTML = `<div class="empty">No rounds yet. Import or add a course, then use Add round to start your scoring record.</div>`;
     return;
@@ -502,17 +807,21 @@ function renderRounds() {
       const hasHandicapIndex = Number.isFinite(roundHandicapIndex);
       const courseHandicap = hasHandicapIndex ? playingHandicap(round.course, roundHandicapIndex) : null;
       const netScore = hasHandicapIndex ? round.score - courseHandicap : "--";
+      const differentialValue = Number.isFinite(round.differential) ? round.differential.toFixed(1) : "--";
+      const handicapStatus = statusByRound[round.id] || handicapEligibility(round, round.course);
       return `
       <article class="round-item">
         <div>
           <div class="round-title">
             <strong>${escapeHtml(round.course.name)}</strong>
             <span>${escapeHtml(round.course.tee)} · ${formatDate(round.date)}</span>
+            ${renderHandicapStatusBadge(handicapStatus)}
           </div>
           <div class="round-meta">
             <span>${round.course.rating}/${round.course.slope}</span>
             <span>Par ${totalPar(round.course)}</span>
             <span>${formatToPar(round.toPar)}</span>
+            <span>${escapeHtml(handicapStatus.reason)}</span>
           </div>
           ${renderRoundCard(round, currentHandicapIndex)}
         </div>
@@ -521,15 +830,25 @@ function renderRounds() {
           ${metric("To par", formatToPar(round.toPar))}
           ${metric("Course hcp", Number.isFinite(courseHandicap) ? formatCourseHandicap(courseHandicap) : "--", hasHandicapIndex ? `<small>Index ${roundHandicapIndex.toFixed(1)}</small>` : "")}
           ${metric("Net score", netScore)}
-          ${metric("Differential", round.differential.toFixed(1), renderHandicapChange(handicapChanges[round.id]))}
+          ${metric("Differential", differentialValue, renderHandicapChange(handicapChanges[round.id]))}
         </div>
-        <button class="delete-button" type="button" data-delete-round="${round.id}">Delete</button>
+        <div class="card-actions">
+          <button class="secondary-action" type="button" data-edit-round="${round.id}">Edit</button>
+          <button class="delete-button" type="button" data-delete-round="${round.id}">Delete</button>
+        </div>
       </article>
     `;
     })
     .join("");
 }
 
+function renderHandicapStatusBadge(status) {
+  const tone = status.status === "included" ? "approved"
+    : status.status === "replaced" ? "private"
+    : status.status === "excluded" ? "unverified"
+    : "not-eligible";
+  return `<span class="status-badge ${tone}">${escapeHtml(status.label)}</span>`;
+}
 function renderRoundCard(round, handicapIndex = null) {
   if (!Array.isArray(round.holes) || round.holes.length !== 18) return "";
   const out = round.holes.slice(0, 9);
@@ -620,11 +939,19 @@ function renderCourses() {
   const target = document.querySelector("#courseList");
   const currentHandicapIndex = handicapSummary().index;
   if (!state.courses.length) {
-    target.innerHTML = `<div class="empty">Find a course from the shared catalog above or add a tee set manually to start tracking rounds.</div>`;
+    target.innerHTML = `<div class="empty">Search community courses above or add a course manually to start tracking rounds.</div>`;
     return;
   }
 
   target.innerHTML = courseGroups()
+    .filter((group) => {
+      if (!remoteCourseSearchTerm) return true;
+      const text = [
+        group.name,
+        ...group.courses.flatMap((course) => [course.tee, course.city, course.state, course.country, course.status])
+      ].filter(Boolean).join(" ").toLowerCase();
+      return text.includes(remoteCourseSearchTerm);
+    })
     .map((group) => {
       const selectedId = selectedCourseIdsByName[group.name] || group.courses[0].id;
       const course = group.courses.find((item) => item.id === selectedId) || group.courses[0];
@@ -638,6 +965,7 @@ function renderCourses() {
         <div>
           <div class="course-title course-title-with-select">
             <strong>${escapeHtml(group.name)}</strong>
+            ${remoteCourseBadge(course)}
             <label class="tee-select-label">
               Tee
               <select data-course-tee-select="${escapeHtml(group.name)}">
@@ -646,6 +974,7 @@ function renderCourses() {
             </label>
           </div>
           <div class="course-meta">
+            ${[course.city, course.state].filter(Boolean).length ? `<span>${escapeHtml([course.city, course.state].filter(Boolean).join(", "))}</span>` : ""}
             <span>Rating ${Number(course.rating).toFixed(1)}</span>
             <span>Slope ${course.slope}</span>
             <span>Par ${totalPar(course)}</span>
@@ -653,6 +982,7 @@ function renderCourses() {
             ${Number.isFinite(courseHandicap) ? `<span>Course hcp ${formatCourseHandicap(courseHandicap)}</span>` : ""}
           </div>
           ${renderCourseStats(course)}
+          ${course.backendCourseId && course.status !== "approved" ? `<div class="course-note">${course.isPublicUnverified ? "Community-submitted and not yet reviewed." : "Private draft, visible only to you until approved."}</div>` : ""}
           ${renderCourseCard(course)}
         </div>
         <button class="delete-button" type="button" data-delete-course="${course.id}">Delete tee</button>
@@ -1344,6 +1674,101 @@ function showInitialSetup() {
   if (!state.profile?.setupComplete) openSetupDialog();
 }
 
+function setRoundDialogMode(round = null) {
+  editingRoundId = round?.id || null;
+  const title = roundForm.querySelector(".dialog-header h2");
+  const saveButton = roundForm.querySelector("button[type='submit']");
+  if (title) title.textContent = editingRoundId ? "Edit round" : "Add round";
+  if (saveButton) saveButton.textContent = editingRoundId ? "Save changes" : "Save round";
+}
+
+function openRoundDialog(round = null) {
+  if (!state.courses.length) {
+    location.hash = "#courses";
+    route();
+    return;
+  }
+
+  roundForm.reset();
+  setRoundDialogMode(round);
+  roundForm.elements.date.value = round?.date || todayIso();
+  renderCourseSelect();
+
+  if (round) {
+    const course = courseById(round.courseId);
+    if (course) {
+      courseSelect.value = course.name;
+      renderTeeSelect();
+      teeSelect.value = course.id;
+      updateSelectedCourseMeta();
+      roundHoleState.activeHole = 1;
+      roundHoleState.holes = course.holes.map((hole, index) => {
+        const saved = round.holes?.[index] || {};
+        return {
+          hole: hole.hole,
+          par: Number(saved.par) || Number(hole.par) || 4,
+          yards: Number(saved.yards) || Number(hole.yards) || null,
+          handicap: Number(saved.handicap) || Number(hole.handicap) || hole.hole,
+          strokes: hasHoleScore(saved) ? Number(saved.strokes) : null
+        };
+      });
+      renderRoundScoringUI();
+    } else {
+      startRoundCard();
+    }
+  } else {
+    startRoundCard();
+  }
+
+  roundDialog.showModal();
+}
+
+function setAuthMode(mode) {
+  authMode = mode;
+  if (!authForm) return;
+  authForm.dataset.mode = mode;
+  authForm.querySelector("h2").textContent = mode === "signup" ? "Create account" : "Sign in";
+  authForm.querySelector("[data-auth-submit]").textContent = mode === "signup" ? "Create account" : "Sign in";
+  authForm.querySelector("[data-auth-switch]").textContent = mode === "signup" ? "I already have an account" : "Create an account";
+  const nameLabel = authForm.querySelector("[data-auth-name]");
+  if (nameLabel) nameLabel.hidden = mode !== "signup";
+}
+
+function setAuthStatus(message) {
+  if (authStatus) authStatus.textContent = message;
+}
+
+async function signOut() {
+  if (!supabase) return;
+  await supabase.auth.signOut();
+  remoteSession = null;
+  Object.assign(state, blankState());
+  saveState();
+  setSignedInUi(false);
+  setAuthStatus("Signed out.");
+}
+
+async function initializeAuth() {
+  await createSupabaseClient();
+  if (!supabase) {
+    setSignedInUi(true);
+    return;
+  }
+
+  setSignedInUi(false);
+  setAuthMode("login");
+  const { data, error } = await supabase.auth.getSession();
+  if (error) {
+    setAuthStatus(error.message);
+    return;
+  }
+  remoteSession = data.session;
+  if (!remoteSession) return;
+  setSignedInUi(true);
+  await ensureRemoteProfile();
+  await loadRemoteData();
+}
+
 function saveProfile(formData, setupComplete = true) {
   state.profile = {
     name: String(formData.get("playerName") || "").trim(),
@@ -1351,6 +1776,15 @@ function saveProfile(formData, setupComplete = true) {
   };
   saveState();
   renderProfile();
+  if (hasRemoteSession()) {
+    supabase
+      .from("profiles")
+      .upsert({ id: remoteUserId(), display_name: state.profile.name }, { onConflict: "id" })
+      .then(({ error }) => {
+        if (error) setSyncStatus("Profile sync failed");
+        else setSyncStatus("Synced");
+      });
+  }
 }
 
 async function imageFromForm(formData, key) {
@@ -1383,19 +1817,45 @@ function imageFileToDataUrl(file) {
 }
 
 document.querySelectorAll("[data-open-round]").forEach((button) => {
-  button.addEventListener("click", () => {
-    if (!state.courses.length) {
-      location.hash = "#courses";
-      route();
-      return;
-    }
-    roundForm.reset();
-    roundForm.elements.date.value = todayIso();
-    renderCourseSelect();
-    startRoundCard();
-    roundDialog.showModal();
-  });
+  button.addEventListener("click", () => openRoundDialog());
 });
+
+authForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!supabase) {
+    setAuthStatus("Supabase is not configured for this build.");
+    return;
+  }
+  const formData = new FormData(authForm);
+  const email = String(formData.get("email") || "").trim();
+  const password = String(formData.get("password") || "");
+  const displayName = String(formData.get("displayName") || "").trim();
+  setAuthStatus(authMode === "signup" ? "Creating account..." : "Signing in...");
+  const result = authMode === "signup"
+    ? await supabase.auth.signUp({ email, password, options: { data: { display_name: displayName } } })
+    : await supabase.auth.signInWithPassword({ email, password });
+  if (result.error) {
+    setAuthStatus(result.error.message);
+    return;
+  }
+  remoteSession = result.data.session;
+  if (!remoteSession) {
+    setAuthStatus("Check your email to confirm the account, then sign in.");
+    return;
+  }
+  await ensureRemoteProfile(displayName);
+  await loadRemoteData();
+  setSignedInUi(true);
+  render();
+  route();
+});
+
+document.querySelector("[data-auth-switch]")?.addEventListener("click", () => {
+  setAuthMode(authMode === "signup" ? "login" : "signup");
+  setAuthStatus("");
+});
+
+document.querySelector("[data-logout]")?.addEventListener("click", signOut);
 
 links.forEach((link) => {
   link.addEventListener("click", (event) => {
@@ -1426,6 +1886,10 @@ analyticsCourseSelect.addEventListener("change", () => {
 
 analyticsTeeSelect.addEventListener("change", renderAnalytics);
 catalogSearch?.addEventListener("input", renderCourseCatalog);
+cloudCourseSearch?.addEventListener("input", () => {
+  remoteCourseSearchTerm = cloudCourseSearch.value.trim().toLowerCase();
+  renderCourses();
+});
 
 courseForm.addEventListener("input", (event) => {
   if (event.target.closest(".hole-table")) updateHoleTotals();
@@ -1465,9 +1929,11 @@ roundForm.addEventListener("submit", async (event) => {
   }
   const holes = roundHoleState.holes.map((hole) => ({ ...hole, strokes: Number(hole.strokes) }));
   const photo = await imageFromForm(formData, "roundPhoto");
+  const existingRound = editingRoundId ? state.rounds.find((item) => item.id === editingRoundId) : null;
   const round = {
-    id: uid(),
-    createdAt: Date.now(),
+    id: existingRound?.id || uid(),
+    createdAt: existingRound?.createdAt || Date.now(),
+    updatedAt: existingRound ? Date.now() : undefined,
     date: formData.get("date"),
     courseId: formData.get("courseId"),
     pcc: numeric(formData, "pcc") || 0,
@@ -1475,7 +1941,23 @@ roundForm.addEventListener("submit", async (event) => {
     holes
   };
   if (photo) round.photo = photo;
-  state.rounds.push(round);
+  else if (existingRound?.photo) round.photo = existingRound.photo;
+  if (hasRemoteSession()) {
+    try {
+      const saved = await saveRemoteRound(round, existingRound);
+      round.id = saved.id;
+      round.backendCourseId = saved.course_id;
+      round.backendTeeId = saved.tee_id;
+      setSyncStatus("Synced");
+    } catch (error) {
+      document.querySelector("#roundTotalScore").textContent = error.message || "Could not save round.";
+      setSyncStatus("Round sync failed");
+      return;
+    }
+  }
+  if (existingRound) state.rounds = state.rounds.map((item) => item.id === existingRound.id ? round : item);
+  else state.rounds.push(round);
+  editingRoundId = null;
   saveState();
   roundDialog.close();
   render();
@@ -1491,9 +1973,31 @@ courseForm.addEventListener("submit", async (event) => {
     return;
   }
   const photo = await imageFromForm(formData, "coursePhoto");
+  if (hasRemoteSession()) {
+    try {
+      const remoteCourse = await saveRemoteCourse(formData, holes);
+      if (photo) remoteCourse.photo = photo;
+      state.courses.push(remoteCourse);
+      selectedCourseIdsByName[remoteCourse.name] = remoteCourse.id;
+      saveState();
+      courseForm.reset();
+      renderHoleEditor();
+      setCourseFormOpen(false);
+      setSyncStatus("Synced");
+      render();
+      return;
+    } catch (error) {
+      holeTotals.textContent = error.message || "Could not save course.";
+      setSyncStatus("Course sync failed");
+      return;
+    }
+  }
   const course = {
     id: uid(),
     name: String(formData.get("name")).trim(),
+    city: String(formData.get("city") || "").trim(),
+    state: String(formData.get("state") || "").trim(),
+    country: String(formData.get("country") || "US").trim(),
     tee: String(formData.get("tee")).trim(),
     rating: numeric(formData, "rating"),
     slope: numeric(formData, "slope"),
@@ -1509,7 +2013,8 @@ courseForm.addEventListener("submit", async (event) => {
   render();
 });
 
-document.addEventListener("click", (event) => {
+document.addEventListener("click", async (event) => {
+  const editRoundButton = event.target.closest("[data-edit-round]");
   const roundButton = event.target.closest("[data-delete-round]");
   const courseButton = event.target.closest("[data-delete-course]");
   const strokeButton = event.target.closest("[data-stroke]");
@@ -1524,8 +2029,20 @@ document.addEventListener("click", (event) => {
   if (nextHoleButton) setActiveRoundHole(roundHoleState.activeHole + 1);
   if (catalogImportButton) importCatalogCourse(catalogImportButton.dataset.importCatalog);
   if (catalogCourseImportButton) importCatalogGroup(catalogCourseImportButton.dataset.importCatalogCourse);
+  if (editRoundButton) {
+    const round = state.rounds.find((item) => item.id === editRoundButton.dataset.editRound);
+    if (round) openRoundDialog(round);
+  }
   if (roundButton) {
     if (!confirm("Delete this round from local storage?")) return;
+    if (hasRemoteSession()) {
+      const { error } = await supabase.from("rounds").delete().eq("id", roundButton.dataset.deleteRound);
+      if (error) {
+        setSyncStatus("Delete failed");
+        alert(error.message);
+        return;
+      }
+    }
     state.rounds = state.rounds.filter((round) => round.id !== roundButton.dataset.deleteRound);
     saveState();
     render();
@@ -1537,6 +2054,15 @@ document.addEventListener("click", (event) => {
       ? `Delete this course and ${affectedRounds} linked ${affectedRounds === 1 ? "round" : "rounds"} from local storage?`
       : "Delete this course from local storage?";
     if (!confirm(message)) return;
+    const course = courseById(courseId);
+    if (hasRemoteSession() && course?.backendCourseId) {
+      const { error } = await supabase.from("courses").delete().eq("id", course.backendCourseId);
+      if (error) {
+        setSyncStatus("Delete failed");
+        alert(error.message);
+        return;
+      }
+    }
     state.courses = state.courses.filter((course) => course.id !== courseId);
     state.rounds = state.rounds.filter((round) => round.courseId !== courseId);
     saveState();
@@ -1571,6 +2097,15 @@ document.querySelector("[data-export]").addEventListener("click", () => {
 
 window.addEventListener("hashchange", route);
 window.addEventListener("resize", () => drawTrend(handicapSummary().recent));
+window.addEventListener("online", async () => {
+  if (!hasRemoteSession()) return;
+  try {
+    await loadRemoteData();
+    render();
+  } catch {
+    setSyncStatus("Online, sync failed");
+  }
+});
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./sw.js", { scope: "./" }).then(
@@ -1585,8 +2120,18 @@ if ("serviceWorker" in navigator) {
   document.querySelector("#offlineStatus").textContent = "This browser does not support service workers.";
 }
 
-renderHoleEditor();
-document.querySelector("#todayLabel").textContent = todayLabel();
-route();
-loadCourseCatalog();
-showInitialSetup();
+async function startApp() {
+  renderHoleEditor();
+  document.querySelector("#todayLabel").textContent = todayLabel();
+  await initializeAuth();
+  route();
+  loadCourseCatalog();
+  if (!supabase) showInitialSetup();
+}
+
+startApp().catch((error) => {
+  setAuthStatus(error.message || "Could not start ParTrack.");
+  setSyncStatus("Setup needed");
+  setSignedInUi(Boolean(!supabase));
+  route();
+});

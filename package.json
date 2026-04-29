@@ -6,5 +6,8 @@
     "generate-icons": "node scripts/generate-icons.js",
     "prebuild": "node scripts/generate-icons.js",
     "build": "node scripts/build.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.43.4"
   }
 }

@@ -15,9 +15,34 @@
     <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" sizes="192x192" href="./public/icons/icon-192.png" />
     <link rel="stylesheet" href="./styles.css" />
+    <script src="./env-config.js"></script>
   </head>
   <body>
-    <div class="app-shell">
+    <section id="authScreen" class="auth-screen" hidden>
+      <form id="authForm" class="auth-card" data-mode="login">
+        <img src="./assets/logo.svg" alt="ParTrack" />
+        <p class="eyebrow">Private synced handicap tracker</p>
+        <h2>Sign in</h2>
+        <p class="panel-note">Create an account to sync your courses, rounds, and handicap record across devices. Community-submitted courses can be used immediately and reviewed later.</p>
+        <label data-auth-name hidden>
+          Display name
+          <input name="displayName" autocomplete="name" />
+        </label>
+        <label>
+          Email
+          <input name="email" type="email" autocomplete="email" required />
+        </label>
+        <label>
+          Password
+          <input name="password" type="password" autocomplete="current-password" minlength="6" required />
+        </label>
+        <p id="authStatus" class="auth-status" aria-live="polite"></p>
+        <button class="primary-action" type="submit" data-auth-submit>Sign in</button>
+        <button class="secondary-action" type="button" data-auth-switch>Create an account</button>
+      </form>
+    </section>
+
+    <div class="app-shell" hidden>
       <aside class="rail">
         <a class="brand" href="#dashboard" aria-label="ParTrack dashboard">
           <img src="./assets/logo.svg" alt="ParTrack" />
@@ -62,8 +87,9 @@
           </div>
           <div class="topbar-meta" aria-label="App status">
             <span id="todayLabel"></span>
-            <span>Local data</span>
+            <span id="syncStatus">Local data</span>
           </div>
+          <button class="secondary-action logout-action" type="button" data-logout>Logout</button>
           <button class="primary-action" type="button" data-open-round>
             <span aria-hidden="true">+</span>
             Add round
@@ -184,9 +210,21 @@
             </div>
             <label>
               Search approved courses
-              <input id="catalogSearch" type="search" placeholder="Course, city, state, or tee" autocomplete="off" />
+              <input id="catalogSearch" type="search" placeholder="Static catalog course, city, state, or tee" autocomplete="off" />
             </label>
             <div id="catalogResults" class="catalog-results" aria-live="polite"></div>
+          </section>
+          <section class="panel cloud-course-panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Cloud database</p>
+                <h2>Search saved courses</h2>
+              </div>
+            </div>
+            <label>
+              Search approved, unverified, or your draft courses
+              <input id="cloudCourseSearch" type="search" placeholder="Course, city, state, or tee" autocomplete="off" />
+            </label>
           </section>
           <div id="courseList" class="course-list"></div>
           <form id="courseForm" class="panel course-form is-collapsed">
@@ -200,6 +238,22 @@
                 <input name="tee" placeholder="Blue" required />
               </label>
               <label>
+                Tee type
+                <input name="gender" placeholder="Men, women, mixed" />
+              </label>
+              <label>
+                City
+                <input name="city" autocomplete="address-level2" />
+              </label>
+              <label>
+                State
+                <input name="state" autocomplete="address-level1" />
+              </label>
+              <label>
+                Country
+                <input name="country" autocomplete="country-name" value="US" />
+              </label>
+              <label>
                 Rating
                 <input name="rating" type="number" min="50" max="90" step="0.1" required />
               </label>
@@ -210,6 +264,10 @@
               <label>
                 Scorecard photo
                 <input name="coursePhoto" type="file" accept="image/*" />
+              </label>
+              <label class="toggle-field">
+                <input name="shareUnverified" type="checkbox" />
+                <span>Share as unverified course</span>
               </label>
             </div>
 
@@ -305,7 +363,7 @@
             </article>
             <article class="panel">
               <h3>Data</h3>
-              <p>Your profile, rounds, and imported courses live in this browser until you export or clear them.</p>
+              <p>Signed-in data syncs with Supabase. Local fallback data stays in this browser until you export or clear it.</p>
               <div class="button-row">
                 <button class="danger-action" type="button" data-clear>Clear local data</button>
               </div>

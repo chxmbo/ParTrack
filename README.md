@@ -5,9 +5,10 @@ A private, offline-capable golf handicap tracker inspired by the utility of apps
 ## What is included
 
 - Static PWA: `index.html`, `styles.css`, `app.js`, `public/manifest.webmanifest`, and `sw.js`
-- Fresh first-run profile with local-only storage for courses, hole-by-hole tee data, and rounds
+- Supabase email/password auth with private synced profiles, rounds, and imported or user-created courses
+- Fresh first-run profile with local storage fallback when Supabase is not configured
 - Course tee sets include an 18-hole card with par, yardage, and per-hole handicap index
-- Reviewed static course catalog in `public/course-catalog.json` for importing approved tee sets
+- Reviewed static course catalog in `public/course-catalog.json` plus a Supabase-ready crowdsourced course database
 - Estimated WHS handicap index calculation from completed hole scores, course rating, slope, and PCC
 - GitHub Pages workflow in `.github/workflows/deploy-pages.yml`
 
@@ -71,7 +72,71 @@ On Android Chrome:
 3. Open ParTrack once while online so the offline cache is populated.
 
 After the first successful visit, the PWA shell is available offline on that device.
-Your profile, courses, and rounds are stored in the browser's local storage on that device. There is no backend or remote user database, so GitHub Pages cannot sync personal data across devices. Cross-device sync would require adding a backend with authentication, such as Supabase or Firebase.
+When Supabase is configured, your profile and rounds sync to your private account. When Supabase is not configured, your profile, courses, and rounds are stored in the browser's local storage on that device.
+
+## Supabase setup
+
+ParTrack is still a GitHub Pages-hosted static PWA. Supabase provides auth, database storage, row-level security, and cross-device sync. There is no custom backend server.
+
+1. Create or open a Supabase project.
+2. In Supabase SQL Editor, run [`supabase/schema.sql`](supabase/schema.sql).
+3. In Authentication -> Providers, enable Email.
+4. In Authentication -> URL Configuration, add your GitHub Pages URL to allowed redirect URLs, for example `https://USERNAME.github.io/ParTrack/`.
+5. In GitHub repo Settings -> Secrets and variables -> Actions, add:
+
+```text
+VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+VITE_SUPABASE_ANON_KEY=YOUR_PUBLIC_ANON_KEY
+```
+
+6. Push to `main` or run the Pages workflow manually.
+
+The build writes these values into `dist/env-config.js`. The anon key is public by design; data privacy depends on the RLS policies in `supabase/schema.sql`, not on hiding this key.
+
+For local development with Supabase, export the same env vars before building:
+
+```bash
+export VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+export VITE_SUPABASE_ANON_KEY=YOUR_PUBLIC_ANON_KEY
+npm run build
+python3 -m http.server 4173 --directory dist
+```
+
+If you open `index.html` directly, the app uses the checked-in blank `env-config.js` and runs as local-only.
+
+## Auth and data model
+
+Signed-out users see an email/password login screen. Signed-in users see the tracker and their data syncs to Supabase.
+
+Supabase tables:
+
+- `profiles`: one row per auth user
+- `courses`: course parent records with `approved`, `pending`, or `rejected` status
+- `tees`: tee set details, including hole-by-hole scorecard JSON
+- `rounds`: private user rounds, hole scores, differential, and course/tee references
+
+RLS policy intent:
+
+- Users can read/update only their own profile.
+- Users can read/write/delete only their own rounds.
+- Everyone can read approved courses.
+- Creators can immediately use their own pending courses.
+- Pending courses can be visible to everyone when `is_public_unverified = true`.
+- Regular users can create only `pending` courses; admin approval can be added later.
+
+Admin approval is not built into the UI yet. A future admin screen can update `courses.status` to `approved` or `rejected`.
+
+## Crowdsourced courses
+
+Users can add a missing course with tee name, par, rating, slope, yardage, and hole data. New courses are immediately usable by the creator. If “Share as unverified course” is enabled, other users can see and use the pending course with an Unverified badge.
+
+Course badges:
+
+- Approved: reviewed shared course
+- Unverified: community-submitted and visible, but not reviewed
+- Private Draft: pending course visible only to its creator
+
+Offline sync queueing is not implemented yet. The PWA shell still works offline, and local fallback still works when Supabase is not configured. A follow-up should queue offline course and round submissions in local storage and sync when the device comes back online.
 
 ## Shared course catalog
 
@@ -83,4 +148,4 @@ To contribute a course without adding a backend:
 2. The course can be reviewed and added to `public/course-catalog.json` with `status: "approved"`.
 3. Once merged and deployed, it appears in the in-app course search for everyone.
 
-The catalog format includes future-friendly fields such as `catalogId`, `status`, `source`, `submittedBy`, and `updatedAt` so a later backend submission flow can promote approved records into the same shape.
+The static catalog remains useful for reviewed seed data. Supabase is now the preferred path for live community submissions and future admin approval.
