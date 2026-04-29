@@ -276,7 +276,7 @@
           <div class="settings-grid">
             <article class="panel">
               <h3>Profile</h3>
-              <p id="profileSummary">No player profile saved.</p>
+              <p id="profileSummary">Set up your player profile to personalize this device.</p>
               <div class="button-row">
                 <button class="secondary-action" type="button" data-open-setup>Edit profile</button>
               </div>
@@ -287,9 +287,8 @@
             </article>
             <article class="panel">
               <h3>Data</h3>
-              <p>Your rounds and courses live in this browser until you export or clear them.</p>
+              <p>Your profile, rounds, and imported courses live in this browser until you export or clear them.</p>
               <div class="button-row">
-                <button class="secondary-action" type="button" data-seed>Load sample data</button>
                 <button class="danger-action" type="button" data-clear>Clear local data</button>
               </div>
             </article>
@@ -381,14 +380,11 @@
             <h2>Welcome to ParTrack</h2>
           </div>
         </div>
+        <p class="panel-note">Start fresh with a private profile. Your rounds stay on this device unless you export them.</p>
         <div class="form-grid">
           <label>
             Your name
             <input name="playerName" autocomplete="name" required />
-          </label>
-          <label>
-            Home course
-            <select name="homeCourse" id="homeCourseSelect" required></select>
           </label>
         </div>
         <div class="dialog-actions">

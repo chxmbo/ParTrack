@@ -5,7 +5,7 @@ A private, offline-capable golf handicap tracker inspired by the utility of apps
 ## What is included
 
 - Static PWA: `index.html`, `styles.css`, `app.js`, `public/manifest.webmanifest`, and `sw.js`
-- Local-only storage for courses, hole-by-hole tee data, and rounds
+- Fresh first-run profile with local-only storage for courses, hole-by-hole tee data, and rounds
 - Course tee sets include an 18-hole card with par, yardage, and per-hole handicap index
 - Reviewed static course catalog in `public/course-catalog.json` for importing approved tee sets
 - Estimated WHS handicap index calculation from completed hole scores, course rating, slope, and PCC
@@ -71,7 +71,7 @@ On Android Chrome:
 3. Open ParTrack once while online so the offline cache is populated.
 
 After the first successful visit, the PWA shell is available offline on that device.
-Courses and rounds are stored in the browser's local storage on that device. There is no backend or remote database.
+Your profile, courses, and rounds are stored in the browser's local storage on that device. There is no backend or remote user database, so GitHub Pages cannot sync personal data across devices. Cross-device sync would require adding a backend with authentication, such as Supabase or Firebase.
 
 ## Shared course catalog
 
