@@ -93,6 +93,11 @@ const roundForm = document.querySelector("#roundForm");
 const courseForm = document.querySelector("#courseForm");
 const courseFormToggle = document.querySelector("[data-toggle-course-form]");
 const courseSelect = document.querySelector("#courseSelect");
+const teeSelect = document.querySelector("#teeSelect");
+const analyticsCourseSelect = document.querySelector("#analyticsCourseSelect");
+const analyticsTeeSelect = document.querySelector("#analyticsTeeSelect");
+const analyticsSummary = document.querySelector("#analyticsSummary");
+const holeAnalyticsRows = document.querySelector("#holeAnalyticsRows");
 const holeRows = document.querySelector("#holeRows");
 const holeTotals = document.querySelector("#holeTotals");
 const strokeButtons = document.querySelector("#strokeButtons");
@@ -298,6 +303,7 @@ function route() {
 function render() {
   renderHoleEditor();
   renderCourseSelect();
+  renderAnalytics();
   renderDashboard();
   renderRounds();
   renderCourses();
@@ -608,6 +614,16 @@ function courseGroups() {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
+function courseNames() {
+  return [...new Set(state.courses.map((course) => course.name.trim()))].sort((a, b) => a.localeCompare(b));
+}
+
+function coursesByName(name) {
+  return state.courses
+    .filter((course) => course.name.trim() === name)
+    .sort((a, b) => String(a.tee).localeCompare(String(b.tee)));
+}
+
 function renderCourseStats(course) {
   const stats = courseStats(course);
   if (!stats.rounds) {
@@ -721,14 +737,31 @@ function renderHoleEditor(preserveValues = true) {
 }
 
 function renderCourseSelect() {
-  courseSelect.innerHTML = state.courses
-    .map((course) => `<option value="${course.id}">${escapeHtml(course.name)} · ${escapeHtml(course.tee)}</option>`)
+  const previousName = courseSelect.value;
+  const names = courseNames();
+  courseSelect.innerHTML = names
+    .map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`)
     .join("");
+  if (names.includes(previousName)) courseSelect.value = previousName;
+  renderTeeSelect();
   updateSelectedCourseMeta();
 }
 
+function renderTeeSelect() {
+  const previousTeeId = teeSelect.value;
+  const tees = coursesByName(courseSelect.value);
+  teeSelect.innerHTML = tees
+    .map((course) => `<option value="${course.id}">${escapeHtml(course.tee)}</option>`)
+    .join("");
+  if (tees.some((course) => course.id === previousTeeId)) teeSelect.value = previousTeeId;
+}
+
+function selectedRoundCourse() {
+  return courseById(teeSelect.value) || coursesByName(courseSelect.value)[0] || state.courses[0];
+}
+
 function updateSelectedCourseMeta() {
-  const course = courseById(courseSelect.value) || state.courses[0];
+  const course = selectedRoundCourse();
   const target = document.querySelector("#selectedCourseMeta");
   const yards = course ? totalYards(course) : null;
   target.textContent = course
@@ -736,7 +769,7 @@ function updateSelectedCourseMeta() {
     : "Add a course before saving a round.";
 }
 
-function startRoundCard(course = courseById(courseSelect.value) || state.courses[0]) {
+function startRoundCard(course = selectedRoundCourse()) {
   roundHoleState.activeHole = 1;
   roundHoleState.holes = course
     ? course.holes.map((hole) => ({
@@ -748,6 +781,67 @@ function startRoundCard(course = courseById(courseSelect.value) || state.courses
     }))
     : [];
   renderRoundScoringUI();
+}
+
+function renderAnalytics() {
+  if (!analyticsCourseSelect || !analyticsTeeSelect || !analyticsSummary || !holeAnalyticsRows) return;
+  renderAnalyticsCourseSelect();
+  renderAnalyticsTeeSelect();
+  const course = courseById(analyticsTeeSelect.value) || coursesByName(analyticsCourseSelect.value)[0];
+  const rounds = scoringRecord().filter((round) => round.courseId === course?.id && Array.isArray(round.holes));
+  if (!course) {
+    analyticsSummary.innerHTML = metric("Rounds", "--") + metric("Avg score", "--") + metric("Best", "--") + metric("Worst", "--");
+    holeAnalyticsRows.innerHTML = "";
+    return;
+  }
+
+  const scores = rounds.map((round) => round.score).filter(Number.isFinite);
+  const averageScore = scores.length ? round1(scores.reduce((sum, score) => sum + score, 0) / scores.length).toFixed(1) : "--";
+  analyticsSummary.innerHTML = [
+    metric("Rounds", rounds.length),
+    metric("Avg score", averageScore),
+    metric("Best", scores.length ? Math.min(...scores) : "--"),
+    metric("Worst", scores.length ? Math.max(...scores) : "--")
+  ].join("");
+
+  holeAnalyticsRows.innerHTML = course.holes.map((hole) => {
+    const scoresForHole = rounds
+      .map((round) => round.holes.find((roundHole) => roundHole.hole === hole.hole)?.strokes)
+      .map(Number)
+      .filter(Number.isFinite);
+    const average = scoresForHole.length ? round1(scoresForHole.reduce((sum, score) => sum + score, 0) / scoresForHole.length) : null;
+    const toPar = Number.isFinite(average) ? round1(average - Number(hole.par)) : null;
+    return `
+      <tr>
+        <th scope="row">${hole.hole}</th>
+        <td>${present(hole.par)}</td>
+        <td>${present(hole.yards)}</td>
+        <td>${scoresForHole.length}</td>
+        <td>${Number.isFinite(average) ? average.toFixed(1) : "--"}</td>
+        <td>${Number.isFinite(toPar) ? formatToPar(toPar) : "--"}</td>
+        <td>${scoresForHole.length ? Math.min(...scoresForHole) : "--"}</td>
+        <td>${scoresForHole.length ? Math.max(...scoresForHole) : "--"}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function renderAnalyticsCourseSelect() {
+  const previousName = analyticsCourseSelect.value;
+  const names = courseNames();
+  analyticsCourseSelect.innerHTML = names
+    .map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`)
+    .join("");
+  if (names.includes(previousName)) analyticsCourseSelect.value = previousName;
+}
+
+function renderAnalyticsTeeSelect() {
+  const previousTeeId = analyticsTeeSelect.value;
+  const tees = coursesByName(analyticsCourseSelect.value);
+  analyticsTeeSelect.innerHTML = tees
+    .map((course) => `<option value="${course.id}">${escapeHtml(course.tee)}</option>`)
+    .join("");
+  if (tees.some((course) => course.id === previousTeeId)) analyticsTeeSelect.value = previousTeeId;
 }
 
 function renderRoundScoringUI() {
@@ -913,9 +1007,23 @@ document.querySelectorAll("[data-close-round]").forEach((button) => {
 });
 
 courseSelect.addEventListener("change", () => {
+  renderTeeSelect();
   updateSelectedCourseMeta();
   startRoundCard();
 });
+
+teeSelect.addEventListener("change", () => {
+  updateSelectedCourseMeta();
+  startRoundCard();
+});
+
+analyticsCourseSelect.addEventListener("change", () => {
+  renderAnalyticsTeeSelect();
+  renderAnalytics();
+});
+
+analyticsTeeSelect.addEventListener("change", renderAnalytics);
+
 courseForm.addEventListener("input", (event) => {
   if (event.target.closest(".hole-table")) updateHoleTotals();
 });

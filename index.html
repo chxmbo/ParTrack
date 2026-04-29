@@ -26,6 +26,7 @@
           <a href="#dashboard" data-view-link="dashboard">Dashboard</a>
           <a href="#rounds" data-view-link="rounds">Rounds</a>
           <a href="#courses" data-view-link="courses">Courses</a>
+          <a href="#analytics" data-view-link="analytics">Analytics</a>
           <a href="#settings" data-view-link="settings">Settings</a>
         </nav>
         <div class="rail-status">
@@ -201,6 +202,45 @@
           </form>
         </section>
 
+        <section id="analytics" class="view" aria-labelledby="analytics-heading">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Scoring patterns</p>
+              <h2 id="analytics-heading">Analytics</h2>
+            </div>
+          </div>
+          <div class="panel analytics-panel">
+            <div class="analytics-filters">
+              <label>
+                Course
+                <select id="analyticsCourseSelect"></select>
+              </label>
+              <label>
+                Tee
+                <select id="analyticsTeeSelect"></select>
+              </label>
+            </div>
+            <div id="analyticsSummary" class="metric-grid analytics-summary"></div>
+            <div class="hole-table-wrap">
+              <table class="hole-table analytics-table">
+                <thead>
+                  <tr>
+                    <th>Hole</th>
+                    <th>Par</th>
+                    <th>Yards</th>
+                    <th>Rounds</th>
+                    <th>Avg</th>
+                    <th>To par</th>
+                    <th>Best</th>
+                    <th>Worst</th>
+                  </tr>
+                </thead>
+                <tbody id="holeAnalyticsRows"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
         <section id="settings" class="view" aria-labelledby="settings-heading">
           <div class="section-heading">
             <div>
@@ -247,7 +287,11 @@
           </label>
           <label>
             Course
-            <select name="courseId" id="courseSelect" required></select>
+            <select id="courseSelect" required></select>
+          </label>
+          <label>
+            Tee
+            <select name="courseId" id="teeSelect" required></select>
           </label>
           <input name="pcc" type="hidden" value="0" />
         </div>
