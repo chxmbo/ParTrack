@@ -653,8 +653,9 @@ function renderCourses() {
 function renderCourseCatalog() {
   if (!catalogStatus || !catalogResults || !catalogSearch) return;
   const query = catalogSearch.value.trim().toLowerCase();
-  const matches = catalogState.entries
-    .filter((entry) => catalogEntrySearchText(entry).includes(query))
+  const courseGroups = catalogCourseGroups();
+  const matches = courseGroups
+    .filter((group) => catalogGroupSearchText(group).includes(query))
     .slice(0, 12);
 
   if (catalogState.error) {
@@ -669,7 +670,7 @@ function renderCourseCatalog() {
     return;
   }
 
-  catalogStatus.textContent = `${catalogState.entries.length} approved`;
+  catalogStatus.textContent = `${courseGroups.length} approved`;
   if (!matches.length) {
     catalogResults.innerHTML = `<div class="empty">No approved catalog courses match that search.</div>`;
     return;
@@ -678,42 +679,74 @@ function renderCourseCatalog() {
   catalogResults.innerHTML = matches.map(renderCatalogResult).join("");
 }
 
-function renderCatalogResult(entry) {
-  const imported = isCatalogEntryImported(entry);
-  const yards = totalYards(entry);
+function renderCatalogResult(group) {
+  const importedCount = group.entries.filter(isCatalogEntryImported).length;
+  const allImported = importedCount === group.entries.length;
+  const location = [group.city, group.state].filter(Boolean).join(", ");
   return `
     <article class="catalog-result">
       <div>
         <div class="catalog-result-title">
-          <strong>${escapeHtml(entry.name)}</strong>
-          <span>${escapeHtml(entry.tee)}</span>
+          <strong>${escapeHtml(group.name)}</strong>
+          ${location ? `<span>${escapeHtml(location)}</span>` : ""}
         </div>
-        <div class="course-meta">
-          <span>${escapeHtml([entry.city, entry.state].filter(Boolean).join(", "))}</span>
-          <span>Rating ${Number(entry.rating).toFixed(1)}</span>
-          <span>Slope ${entry.slope}</span>
-          <span>Par ${totalPar(entry)}</span>
-          ${yards ? `<span>${yards.toLocaleString()} yards</span>` : ""}
+        <div class="catalog-tee-list">
+          ${group.entries.map((entry) => {
+            const yards = totalYards(entry);
+            return `<span>${escapeHtml(entry.tee)} · ${Number(entry.rating).toFixed(1)}/${entry.slope} · Par ${totalPar(entry)}${yards ? ` · ${yards.toLocaleString()} yds` : ""}</span>`;
+          }).join("")}
         </div>
       </div>
-      <button class="${imported ? "secondary-action" : "primary-action"}" type="button" data-import-catalog="${escapeHtml(entry.catalogId)}" ${imported ? "disabled" : ""}>
-        ${imported ? "Imported" : "Import"}
+      <button class="${allImported ? "secondary-action" : "primary-action"}" type="button" data-import-catalog-course="${escapeHtml(group.key)}" ${allImported ? "disabled" : ""}>
+        ${allImported ? "Imported" : importedCount ? "Import missing tees" : "Import course"}
       </button>
     </article>
   `;
 }
 
-function catalogEntrySearchText(entry) {
+function catalogCourseGroups() {
+  const groups = new Map();
+  for (const entry of catalogState.entries) {
+    const key = catalogCourseKey(entry);
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        name: entry.name,
+        city: entry.city || "",
+        state: entry.state || "",
+        country: entry.country || "",
+        entries: []
+      });
+    }
+    groups.get(key).entries.push(entry);
+  }
+  return [...groups.values()]
+    .map((group) => ({
+      ...group,
+      entries: group.entries.sort((a, b) => a.tee.localeCompare(b.tee))
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name) || a.city.localeCompare(b.city) || a.state.localeCompare(b.state));
+}
+
+function catalogCourseKey(entry) {
+  return [entry.name, entry.city, entry.state, entry.country]
+    .map((value) => String(value || "").trim().toLowerCase())
+    .join("|");
+}
+
+function catalogGroupSearchText(group) {
   return [
-    entry.name,
-    entry.tee,
-    entry.city,
-    entry.state,
-    entry.country,
-    Number(entry.rating).toFixed(1),
-    entry.slope,
-    totalPar(entry),
-    totalYards(entry)
+    group.name,
+    group.city,
+    group.state,
+    group.country,
+    ...group.entries.flatMap((entry) => [
+      entry.tee,
+      Number(entry.rating).toFixed(1),
+      entry.slope,
+      totalPar(entry),
+      totalYards(entry)
+    ])
   ].filter(Boolean).join(" ").toLowerCase();
 }
 
@@ -728,6 +761,25 @@ function isCatalogEntryImported(entry) {
 function importCatalogCourse(catalogId) {
   const entry = catalogState.entries.find((item) => item.catalogId === catalogId);
   if (!entry || isCatalogEntryImported(entry)) return;
+  importCatalogEntry(entry);
+  saveState();
+  render();
+}
+
+function importCatalogGroup(key) {
+  const entries = catalogState.entries.filter((entry) => catalogCourseKey(entry) === key);
+  let imported = 0;
+  for (const entry of entries) {
+    if (isCatalogEntryImported(entry)) continue;
+    importCatalogEntry(entry);
+    imported += 1;
+  }
+  if (!imported) return;
+  saveState();
+  render();
+}
+
+function importCatalogEntry(entry) {
   const course = normalizeCourse({
     id: uid(),
     catalogId: entry.catalogId,
@@ -746,8 +798,6 @@ function importCatalogCourse(catalogId) {
   });
   state.courses.push(course);
   selectedCourseIdsByName[course.name] = course.id;
-  saveState();
-  render();
 }
 
 function normalizeCatalogEntry(entry) {
@@ -1421,11 +1471,13 @@ document.addEventListener("click", (event) => {
   const prevHoleButton = event.target.closest("[data-prev-hole]");
   const nextHoleButton = event.target.closest("[data-next-hole]");
   const catalogImportButton = event.target.closest("[data-import-catalog]");
+  const catalogCourseImportButton = event.target.closest("[data-import-catalog-course]");
   if (strokeButton) setActiveHoleScore(Number(strokeButton.dataset.stroke));
   if (roundHoleButton) setActiveRoundHole(Number(roundHoleButton.dataset.roundHole));
   if (prevHoleButton) setActiveRoundHole(roundHoleState.activeHole - 1);
   if (nextHoleButton) setActiveRoundHole(roundHoleState.activeHole + 1);
   if (catalogImportButton) importCatalogCourse(catalogImportButton.dataset.importCatalog);
+  if (catalogCourseImportButton) importCatalogGroup(catalogCourseImportButton.dataset.importCatalogCourse);
   if (roundButton) {
     if (!confirm("Delete this round from local storage?")) return;
     state.rounds = state.rounds.filter((round) => round.id !== roundButton.dataset.deleteRound);
