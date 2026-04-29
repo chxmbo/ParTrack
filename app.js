@@ -292,6 +292,16 @@ function route() {
   render();
 }
 
+function navigateToView(id) {
+  if (!views.some((view) => view.id === id)) return;
+  if (location.hash === `#${id}`) {
+    route();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+  location.hash = id;
+}
+
 function render() {
   renderHoleEditor();
   renderCourseSelect();
@@ -1258,6 +1268,13 @@ document.querySelectorAll("[data-open-round]").forEach((button) => {
     renderCourseSelect();
     startRoundCard();
     roundDialog.showModal();
+  });
+});
+
+links.forEach((link) => {
+  link.addEventListener("click", (event) => {
+    event.preventDefault();
+    navigateToView(link.dataset.viewLink);
   });
 });
 
