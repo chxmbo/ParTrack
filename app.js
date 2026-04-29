@@ -380,7 +380,7 @@ function bestScoreDetail(round, netToPar, handicapIndex, playingHandicapValue) {
   ];
   if (Number.isFinite(netToPar)) parts.push(`${formatToPar(netToPar)} net`);
   if (Number.isFinite(handicapIndex)) parts.push(`Index ${handicapIndex.toFixed(1)}`);
-  if (Number.isFinite(playingHandicapValue)) parts.push(`CH ${playingHandicapValue}`);
+  if (Number.isFinite(playingHandicapValue)) parts.push(`Course hcp ${formatCourseHandicap(playingHandicapValue)}`);
   return parts.join(" · ");
 }
 
@@ -498,8 +498,10 @@ function renderRounds() {
 
   target.innerHTML = record
     .map((round) => {
-      const courseHandicap = playingHandicap(round.course, currentHandicapIndex);
-      const netScore = Number.isFinite(currentHandicapIndex) ? round.score - courseHandicap : "--";
+      const roundHandicapIndex = handicapChanges[round.id]?.after ?? currentHandicapIndex;
+      const hasHandicapIndex = Number.isFinite(roundHandicapIndex);
+      const courseHandicap = hasHandicapIndex ? playingHandicap(round.course, roundHandicapIndex) : null;
+      const netScore = hasHandicapIndex ? round.score - courseHandicap : "--";
       return `
       <article class="round-item">
         <div>
@@ -517,8 +519,9 @@ function renderRounds() {
         <div class="metric-grid">
           ${metric("Score", round.score)}
           ${metric("To par", formatToPar(round.toPar))}
+          ${metric("Course hcp", Number.isFinite(courseHandicap) ? formatCourseHandicap(courseHandicap) : "--", hasHandicapIndex ? `<small>Index ${roundHandicapIndex.toFixed(1)}</small>` : "")}
           ${metric("Net score", netScore)}
-          ${metric("Handicap", round.differential.toFixed(1), renderHandicapChange(handicapChanges[round.id]))}
+          ${metric("Differential", round.differential.toFixed(1), renderHandicapChange(handicapChanges[round.id]))}
         </div>
         <button class="delete-button" type="button" data-delete-round="${round.id}">Delete</button>
       </article>
@@ -573,11 +576,15 @@ function renderScoreNine(label, holes, dotsByHole = {}) {
 function playingHandicap(course, handicapIndex) {
   if (!course || !Number.isFinite(Number(handicapIndex))) return 0;
   const raw = Number(handicapIndex) * (Number(course.slope) / 113) + Number(course.rating) - totalPar(course);
-  return Math.max(0, Math.round(raw));
+  return Math.round(raw);
+}
+
+function formatCourseHandicap(value) {
+  return Number.isFinite(value) ? String(value) : "--";
 }
 
 function handicapDotsByHole(course, handicapIndex) {
-  const allowance = playingHandicap(course, handicapIndex);
+  const allowance = Math.max(0, playingHandicap(course, handicapIndex));
   if (!allowance || !Array.isArray(course?.holes)) return {};
   const fullDots = Math.floor(allowance / 18);
   const extraDots = allowance % 18;
@@ -611,6 +618,7 @@ function renderScoreMark(hole) {
 
 function renderCourses() {
   const target = document.querySelector("#courseList");
+  const currentHandicapIndex = handicapSummary().index;
   if (!state.courses.length) {
     target.innerHTML = `<div class="empty">Find a course from the shared catalog above or add a tee set manually to start tracking rounds.</div>`;
     return;
@@ -622,6 +630,9 @@ function renderCourses() {
       const course = group.courses.find((item) => item.id === selectedId) || group.courses[0];
       selectedCourseIdsByName[group.name] = course.id;
       const yards = totalYards(course);
+      const courseHandicap = Number.isFinite(currentHandicapIndex)
+        ? playingHandicap(course, currentHandicapIndex)
+        : null;
       return `
       <article class="course-item">
         <div>
@@ -639,6 +650,7 @@ function renderCourses() {
             <span>Slope ${course.slope}</span>
             <span>Par ${totalPar(course)}</span>
             ${yards ? `<span>${yards.toLocaleString()} yards</span>` : ""}
+            ${Number.isFinite(courseHandicap) ? `<span>Course hcp ${formatCourseHandicap(courseHandicap)}</span>` : ""}
           </div>
           ${renderCourseStats(course)}
           ${renderCourseCard(course)}
@@ -1036,8 +1048,12 @@ function updateSelectedCourseMeta() {
   const course = selectedRoundCourse();
   const target = document.querySelector("#selectedCourseMeta");
   const yards = course ? totalYards(course) : null;
+  const currentHandicapIndex = handicapSummary().index;
+  const courseHandicap = course && Number.isFinite(currentHandicapIndex)
+    ? playingHandicap(course, currentHandicapIndex)
+    : null;
   target.textContent = course
-    ? `Rating ${Number(course.rating).toFixed(1)} · Slope ${course.slope} · Par ${totalPar(course)}${yards ? ` · ${yards.toLocaleString()} yards` : ""}`
+    ? `Rating ${Number(course.rating).toFixed(1)} · Slope ${course.slope} · Par ${totalPar(course)}${yards ? ` · ${yards.toLocaleString()} yards` : ""}${Number.isFinite(courseHandicap) ? ` · Course hcp ${formatCourseHandicap(courseHandicap)}` : ""}`
     : "Add a course before saving a round.";
 }
 
@@ -1097,11 +1113,14 @@ function renderAnalytics() {
 
   const scores = rounds.map((round) => round.score).filter(Number.isFinite);
   const averageScore = scores.length ? round1(scores.reduce((sum, score) => sum + score, 0) / scores.length).toFixed(1) : "--";
+  const currentHandicapIndex = handicapSummary().index;
+  const courseHandicap = Number.isFinite(currentHandicapIndex) ? playingHandicap(course, currentHandicapIndex) : null;
   analyticsSummary.innerHTML = [
     metric("Rounds", rounds.length),
     metric("Avg score", averageScore),
     metric("Best", scores.length ? Math.min(...scores) : "--"),
-    metric("Worst", scores.length ? Math.max(...scores) : "--")
+    metric("Worst", scores.length ? Math.max(...scores) : "--"),
+    metric("Course hcp", Number.isFinite(courseHandicap) ? formatCourseHandicap(courseHandicap) : "--")
   ].join("");
 
   holeAnalyticsRows.innerHTML = course.holes.map((hole) => {
