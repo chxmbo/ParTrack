@@ -1,14 +1,13 @@
 # ParTrack
 
-A private, offline-capable golf handicap tracker inspired by the utility of apps like 18Birdies without the social feed.
+A private, installable golf handicap tracker powered by Supabase auth and synced user data.
 
 ## What is included
 
 - Static PWA: `index.html`, `styles.css`, `app.js`, `public/manifest.webmanifest`, and `sw.js`
-- Supabase email/password auth with private synced profiles, rounds, and imported or user-created courses
-- Fresh first-run profile with local storage fallback when Supabase is not configured
+- Supabase email/password auth with private synced profiles and rounds
+- Supabase-backed course database for approved, unverified, and private draft courses
 - Course tee sets include an 18-hole card with par, yardage, and per-hole handicap index
-- Reviewed static course catalog in `public/course-catalog.json` plus a Supabase-ready crowdsourced course database
 - Estimated WHS handicap index calculation from completed hole scores, course rating, slope, and PCC
 - GitHub Pages workflow in `.github/workflows/deploy-pages.yml`
 
@@ -71,8 +70,7 @@ On Android Chrome:
 2. Tap the install prompt, or open the menu and tap Add to Home screen or Install app.
 3. Open ParTrack once while online so the offline cache is populated.
 
-After the first successful visit, the PWA shell is available offline on that device.
-When Supabase is configured, your profile and rounds sync to your private account. When Supabase is not configured, your profile, courses, and rounds are stored in the browser's local storage on that device.
+After the first successful visit, the PWA shell is available offline on that device. Profile, course, and round data requires a signed-in Supabase session and syncs to the database.
 
 ## Supabase setup
 
@@ -110,7 +108,7 @@ npm run build
 python3 -m http.server 4173 --directory dist
 ```
 
-If you open `index.html` directly, the app uses the checked-in blank `env-config.js` and runs as local-only.
+If you open `index.html` directly without Supabase env values, the app shows the sign-in screen but cannot load account data. Use the production build or GitHub Pages URL with configured env vars.
 
 ## Auth and data model
 
@@ -144,16 +142,4 @@ Course badges:
 - Unverified: community-submitted and visible, but not reviewed
 - Private Draft: pending course visible only to its creator
 
-Offline sync queueing is not implemented yet. The PWA shell still works offline, and local fallback still works when Supabase is not configured. A follow-up should queue offline course and round submissions in local storage and sync when the device comes back online.
-
-## Shared course catalog
-
-ParTrack includes a reviewed static catalog at `public/course-catalog.json`. The app loads approved entries from that file, lets users search by course, city/state, or tee, and imports the selected tee set into local storage. Imported courses become private device data just like manually added courses.
-
-To contribute a course without adding a backend:
-
-1. Open a GitHub issue or pull request with the course name, location, tee name, rating, slope, total par, total yardage, and hole-by-hole par, yardage, and handicap index.
-2. The course can be reviewed and added to `public/course-catalog.json` with `status: "approved"`.
-3. Once merged and deployed, it appears in the in-app course search for everyone.
-
-The static catalog remains useful for reviewed seed data. Supabase is now the preferred path for live community submissions and future admin approval.
+Offline sync queueing is not implemented yet. The PWA shell still works offline, but account data is intentionally sourced from Supabase rather than a separate browser-only tracker state. A follow-up can queue offline course and round submissions locally and sync them when the device comes back online.

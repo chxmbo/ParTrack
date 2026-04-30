@@ -1,0 +1,844 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#132b25" />
+    <title>ParTrack Design Options</title>
+    <link rel="icon" href="./assets/partrack-mark.png" type="image/png" />
+    <link rel="stylesheet" href="./design-options.css" />
+  </head>
+  <body>
+    <header class="page-header">
+      <a class="brand" href="./index.html#dashboard" aria-label="Open ParTrack">
+        <img src="./assets/partrack-mark.png" alt="" />
+        <span>ParTrack</span>
+      </a>
+      <div>
+        <p class="eyebrow">PWA design directions</p>
+        <h1>Potential app looks</h1>
+      </div>
+    </header>
+
+    <main class="option-grid" aria-label="ParTrack design options">
+      <article class="option option-ops">
+        <div class="option-copy">
+          <p class="eyebrow">Option 1</p>
+          <h2>Scorecard Pro</h2>
+          <p>Dense, fast, and utility-first. Best if ParTrack should feel like a serious scoring tool for repeated use.</p>
+        </div>
+        <div class="ops-pages" aria-label="Scorecard Pro page previews">
+          <section class="mock app-ops" aria-label="Scorecard Pro dashboard preview">
+            <div class="screen-label">Dashboard</div>
+            <div class="app-bar">
+              <div class="mini-brand"><img src="./assets/partrack-mark.png" alt="" /><span>ParTrack</span></div>
+              <button>+</button>
+            </div>
+            <div class="metric-strip">
+              <div><span>Index</span><strong>8.0</strong></div>
+              <div><span>Rounds</span><strong>6</strong></div>
+              <div><span>Avg</span><strong>85.7</strong></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head">
+                <span>Last 20</span>
+                <strong>14 to full index</strong>
+              </div>
+              <div class="chart-lines">
+                <i></i><i></i><i></i>
+                <svg viewBox="0 0 260 96" aria-hidden="true">
+                  <polyline points="8,74 56,56 104,63 152,38 204,47 252,28" />
+                </svg>
+              </div>
+            </div>
+            <div class="scorecard">
+              <span>Hole</span><b>1</b><b>2</b><b>3</b><b>4</b><b>5</b><b>6</b>
+              <span>Score</span><b>5</b><b>4</b><b>3</b><b>6</b><b>5</b><b>4</b>
+            </div>
+          </section>
+
+          <section class="mock app-ops" aria-label="Scorecard Pro rounds preview">
+            <div class="screen-label">Rounds</div>
+            <div class="app-bar">
+              <div class="mini-brand"><img src="./assets/partrack-mark.png" alt="" /><span>ParTrack</span></div>
+              <button>Export</button>
+            </div>
+            <div class="ops-list">
+              <div>
+                <strong>Desert Mesa</strong>
+                <span>Apr 11 · Gold · 73.1/136</span>
+                <b>82</b>
+              </div>
+              <div>
+                <strong>Wasatch Links</strong>
+                <span>Mar 25 · Blue · 71.8/129</span>
+                <b>83</b>
+              </div>
+              <div>
+                <strong>Cedar Ridge</strong>
+                <span>Apr 4 · White · 69.7/123</span>
+                <b>86</b>
+              </div>
+            </div>
+            <div class="scorecard">
+              <span>Hole</span><b>10</b><b>11</b><b>12</b><b>13</b><b>14</b><b>15</b>
+              <span>Score</span><b>4</b><b>5</b><b>3</b><b>5</b><b>4</b><b>5</b>
+            </div>
+            <div class="ops-kpis">
+              <div><span>Diff</span><strong>8.2</strong></div>
+              <div><span>Net</span><strong>74</strong></div>
+            </div>
+          </section>
+
+          <section class="mock app-ops" aria-label="Scorecard Pro courses preview">
+            <div class="screen-label">Courses</div>
+            <div class="app-bar">
+              <div class="mini-brand"><img src="./assets/partrack-mark.png" alt="" /><span>ParTrack</span></div>
+              <button>Course</button>
+            </div>
+            <div class="ops-course-head">
+              <span>Wasatch Links</span>
+              <strong>Blue tee</strong>
+              <small>Rating 71.8 · Slope 129 · Par 72</small>
+            </div>
+            <div class="scorecard scorecard-wide">
+              <span>Hole</span><b>1</b><b>2</b><b>3</b><b>4</b><b>5</b><b>6</b>
+              <span>Par</span><b>4</b><b>4</b><b>3</b><b>5</b><b>4</b><b>4</b>
+              <span>Yds</span><b>385</b><b>412</b><b>168</b><b>536</b><b>397</b><b>421</b>
+              <span>Hcp</span><b>11</b><b>3</b><b>17</b><b>7</b><b>1</b><b>9</b>
+            </div>
+            <div class="ops-kpis">
+              <div><span>Avg score</span><strong>85.5</strong></div>
+              <div><span>Par 5 avg</span><strong>5.7</strong></div>
+            </div>
+          </section>
+
+          <section class="mock app-ops" aria-label="Scorecard Pro round entry preview">
+            <div class="screen-label">Round entry</div>
+            <div class="app-bar">
+              <div class="mini-brand"><img src="./assets/partrack-mark.png" alt="" /><span>ParTrack</span></div>
+              <button>Save</button>
+            </div>
+            <div class="ops-hole-card">
+              <button aria-label="Previous hole">‹</button>
+              <div><span>Hole</span><strong>4</strong></div>
+              <div><span>Par</span><strong>5</strong></div>
+              <div><span>Yards</span><strong>536</strong></div>
+              <button aria-label="Next hole">›</button>
+            </div>
+            <div class="ops-score-grid">
+              <button>2<small>-3</small></button>
+              <button>3<small>-2</small></button>
+              <button>4<small>-1</small></button>
+              <button class="selected">5<small>Par</small></button>
+              <button>6<small>+1</small></button>
+              <button>7<small>+2</small></button>
+              <button>8<small>+3</small></button>
+              <button>9<small>+4</small></button>
+              <button>10<small>+5</small></button>
+            </div>
+            <div class="ops-hole-strip">
+              <span></span><span></span><span></span><span class="active"></span><span></span><span></span>
+            </div>
+          </section>
+
+        </div>
+      </article>
+
+      <article id="option1a" class="option option-ops option-ops-alt">
+        <div class="option-copy">
+          <p class="eyebrow">Option 1A</p>
+          <h2>Scorecard Pro Night</h2>
+          <p>The structure of Scorecard Pro with Tournament Board contrast: compact, serious, and a little more premium.</p>
+        </div>
+        <div class="ops-pages" aria-label="Scorecard Pro Night page previews">
+          <section class="mock app-ops app-ops-night" aria-label="Scorecard Pro Night dashboard preview">
+            <div class="screen-label">Dashboard</div>
+            <div class="app-bar">
+              <div class="mini-brand"><img src="./assets/partrack-mark.png" alt="" /><span>ParTrack</span></div>
+              <button>+</button>
+            </div>
+            <div class="metric-strip">
+              <div><span>Index</span><strong>8.0</strong></div>
+              <div><span>Rounds</span><strong>6</strong></div>
+              <div><span>Avg</span><strong>85.7</strong></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head">
+                <span>Last 20</span>
+                <strong>14 to full index</strong>
+              </div>
+              <div class="chart-lines">
+                <i></i><i></i><i></i>
+                <svg viewBox="0 0 260 96" aria-hidden="true">
+                  <polyline points="8,74 56,56 104,63 152,38 204,47 252,28" />
+                </svg>
+              </div>
+            </div>
+            <div class="scorecard">
+              <span>Hole</span><b>1</b><b>2</b><b>3</b><b>4</b><b>5</b><b>6</b>
+              <span>Score</span><b>5</b><b>4</b><b>3</b><b>6</b><b>5</b><b>4</b>
+            </div>
+          </section>
+
+          <section class="mock app-ops app-ops-night" aria-label="Scorecard Pro Night rounds preview">
+            <div class="screen-label">Rounds</div>
+            <div class="app-bar">
+              <div class="mini-brand"><img src="./assets/partrack-mark.png" alt="" /><span>ParTrack</span></div>
+              <button>Export</button>
+            </div>
+            <div class="ops-list">
+              <div>
+                <strong>Desert Mesa</strong>
+                <span>Apr 11 · Gold · 73.1/136</span>
+                <b>82</b>
+              </div>
+              <div>
+                <strong>Wasatch Links</strong>
+                <span>Mar 25 · Blue · 71.8/129</span>
+                <b>83</b>
+              </div>
+              <div>
+                <strong>Cedar Ridge</strong>
+                <span>Apr 4 · White · 69.7/123</span>
+                <b>86</b>
+              </div>
+            </div>
+            <div class="scorecard">
+              <span>Hole</span><b>10</b><b>11</b><b>12</b><b>13</b><b>14</b><b>15</b>
+              <span>Score</span><b>4</b><b>5</b><b>3</b><b>5</b><b>4</b><b>5</b>
+            </div>
+            <div class="ops-kpis">
+              <div><span>Diff</span><strong>8.2</strong></div>
+              <div><span>Net</span><strong>74</strong></div>
+            </div>
+          </section>
+
+          <section class="mock app-ops app-ops-night" aria-label="Scorecard Pro Night courses preview">
+            <div class="screen-label">Courses</div>
+            <div class="app-bar">
+              <div class="mini-brand"><img src="./assets/partrack-mark.png" alt="" /><span>ParTrack</span></div>
+              <button>Course</button>
+            </div>
+            <div class="ops-course-head">
+              <span>Wasatch Links</span>
+              <strong>Blue tee</strong>
+              <small>Rating 71.8 · Slope 129 · Par 72</small>
+            </div>
+            <div class="scorecard scorecard-wide">
+              <span>Hole</span><b>1</b><b>2</b><b>3</b><b>4</b><b>5</b><b>6</b>
+              <span>Par</span><b>4</b><b>4</b><b>3</b><b>5</b><b>4</b><b>4</b>
+              <span>Yds</span><b>385</b><b>412</b><b>168</b><b>536</b><b>397</b><b>421</b>
+              <span>Hcp</span><b>11</b><b>3</b><b>17</b><b>7</b><b>1</b><b>9</b>
+            </div>
+            <div class="ops-kpis">
+              <div><span>Avg score</span><strong>85.5</strong></div>
+              <div><span>Par 5 avg</span><strong>5.7</strong></div>
+            </div>
+          </section>
+
+          <section class="mock app-ops app-ops-night" aria-label="Scorecard Pro Night round entry preview">
+            <div class="screen-label">Round entry</div>
+            <div class="app-bar">
+              <div class="mini-brand"><img src="./assets/partrack-mark.png" alt="" /><span>ParTrack</span></div>
+              <button>Save</button>
+            </div>
+            <div class="ops-hole-card">
+              <button aria-label="Previous hole">‹</button>
+              <div><span>Hole</span><strong>4</strong></div>
+              <div><span>Par</span><strong>5</strong></div>
+              <div><span>Yards</span><strong>536</strong></div>
+              <button aria-label="Next hole">›</button>
+            </div>
+            <div class="ops-score-grid">
+              <button>2<small>-3</small></button>
+              <button>3<small>-2</small></button>
+              <button>4<small>-1</small></button>
+              <button class="selected">5<small>Par</small></button>
+              <button>6<small>+1</small></button>
+              <button>7<small>+2</small></button>
+              <button>8<small>+3</small></button>
+              <button>9<small>+4</small></button>
+              <button>10<small>+5</small></button>
+            </div>
+            <div class="ops-hole-strip">
+              <span></span><span></span><span></span><span class="active"></span><span></span><span></span>
+            </div>
+          </section>
+        </div>
+      </article>
+
+      <article id="foxhill-sample" class="option option-sample">
+        <div class="option-copy">
+          <p class="eyebrow">Sample flow</p>
+          <h2>Fox Hill round</h2>
+          <p>A compact round in the list, then a detailed scorecard after opening it. Tee details stay present but quiet.</p>
+        </div>
+        <div class="sample-pages" aria-label="Fox Hill sample round flow">
+          <section class="mock app-ops app-ops-night sample-phone" aria-label="Fox Hill rounds list preview">
+            <div class="sample-titlebar">
+              <button aria-label="Back">‹</button>
+              <strong>Rounds</strong>
+            </div>
+            <div class="sample-filters">
+              <span>All rounds</span>
+              <span>By date</span>
+            </div>
+            <div class="sample-round-card">
+              <div class="sample-round-head">
+                <div>
+                  <strong>Fox Hill Club</strong>
+                  <span>Fox Hill Front/Back · 18 holes</span>
+                </div>
+                <small>Qualified</small>
+              </div>
+              <div class="sample-round-metrics">
+                <div class="sample-score-tile">
+                  <span>To par</span>
+                  <strong>+37</strong>
+                  <small>Gross 107</small>
+                </div>
+                <div><span>Birdies</span><strong>0</strong></div>
+                <div><span>Pars</span><strong>0</strong></div>
+                <div><span>Bogeys</span><strong>6</strong></div>
+              </div>
+              <div class="sample-round-foot">
+                <span>04/24/2026</span>
+                <span>Final thru 18</span>
+              </div>
+            </div>
+            <button class="sample-primary">Enter past round</button>
+          </section>
+
+          <section class="mock app-ops app-ops-night sample-phone sample-midround" aria-label="Fox Hill mid-round entry preview">
+            <div class="sample-titlebar">
+              <button aria-label="Back">‹</button>
+              <strong>Fox Hill</strong>
+              <button class="sample-save">Save</button>
+            </div>
+            <div class="sample-course-title">
+              <strong>Hole 10</strong>
+              <span>Fox Hill Front/Back · White · 6,434 yds</span>
+            </div>
+            <div class="sample-active-hole">
+              <div>
+                <span>Current hole</span>
+                <strong>10</strong>
+              </div>
+              <div>
+                <span>Par</span>
+                <strong>4</strong>
+              </div>
+              <div>
+                <span>Score</span>
+                <strong>5</strong>
+              </div>
+            </div>
+            <div class="sample-entry-grid" aria-label="Hole 10 score options">
+              <button>1<small>-3</small></button>
+              <button>2<small>-2</small></button>
+              <button>3<small>-1</small></button>
+              <button>4<small>Par</small></button>
+              <button class="selected">5<small>+1</small></button>
+              <button>6<small>+2</small></button>
+              <button>7<small>+3</small></button>
+              <button>8<small>+4</small></button>
+            </div>
+            <div class="sample-progress-card">
+              <div class="sample-hole-progress" aria-label="Mid-round hole progress">
+                <span class="played">8</span><span class="played">7</span><span class="played">6</span><span class="played">5</span><span class="played">7</span><span class="played">5</span><span class="played">9</span><span class="played">4</span><span class="played">6</span>
+                <span class="active">5</span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+              </div>
+              <div class="sample-round-foot">
+                <span>10 holes entered</span>
+                <span>8 holes left</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="mock app-ops app-ops-night sample-phone sample-detail" aria-label="Fox Hill round detail preview">
+            <div class="sample-detail-top">
+              <span>04/24/2026</span>
+              <button aria-label="Share">↥</button>
+            </div>
+            <div class="sample-course-title">
+              <strong>Fox Hill Club</strong>
+              <span>Fox Hill Front/Back</span>
+            </div>
+            <div class="sample-meta-row">
+              <span>Par <b>70</b></span>
+              <span>White · <b>6,434 yds</b></span>
+            </div>
+            <div class="sample-scoreboard">
+              <div class="sample-scoreboard-top">
+                <span>To par</span>
+                <strong>+37</strong>
+                <span>Gross/net</span>
+                <strong>107/78</strong>
+              </div>
+              <div class="sample-hole-grid" aria-label="Fox Hill hole scores">
+                <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span>
+                <b>8</b><b>7</b><b>6</b><b>5</b><b>7</b><b>5</b><b>9</b><b>4</b><b>6</b>
+                <span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span>
+                <b>5</b><b>5</b><b>6</b><b>7</b><b>6</b><b>6</b><b>5</b><b>4</b><b>6</b>
+              </div>
+              <div class="sample-nine-totals"><span>Out 57</span><span>In 50</span></div>
+            </div>
+            <div class="sample-stat-card">
+              <strong>Scoring stats</strong>
+              <div class="sample-stat-grid">
+                <span>Par 3 avg<br /><b>5.0</b></span>
+                <span>Par 4 avg<br /><b>6.1</b></span>
+                <span>Par 5 avg<br /><b>7.0</b></span>
+                <span>Birdies+<br /><b>0</b></span>
+                <span>Pars<br /><b>0</b></span>
+                <span>Bogeys+<br /><b>18</b></span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </article>
+
+      <article class="option option-caddie">
+        <div class="option-copy">
+          <p class="eyebrow">Option 2</p>
+          <h2>Caddie Card</h2>
+          <p>More tactile and phone-native. Best if the round-entry flow is the heart of the app.</p>
+        </div>
+        <section class="mock app-caddie" aria-label="Caddie Card preview">
+          <div class="app-bar">
+            <div class="mini-brand"><img src="./assets/partrack-mark.png" alt="" /><span>ParTrack</span></div>
+            <button>Save</button>
+          </div>
+          <div class="hole-hero">
+            <button aria-label="Previous hole">‹</button>
+            <div><span>Hole</span><strong>4</strong></div>
+            <div><span>Par</span><strong>5</strong></div>
+            <div><span>Yards</span><strong>536</strong></div>
+            <button aria-label="Next hole">›</button>
+          </div>
+          <div class="score-grid">
+            <button>2<small>-3</small></button>
+            <button>3<small>-2</small></button>
+            <button>4<small>-1</small></button>
+            <button class="selected">5<small>Par</small></button>
+            <button>6<small>+1</small></button>
+            <button>7<small>+2</small></button>
+            <button>8<small>+3</small></button>
+            <button>9<small>+4</small></button>
+            <button>10<small>+5</small></button>
+          </div>
+          <div class="bottom-tabs"><span></span><span></span><span></span><span></span></div>
+        </section>
+      </article>
+
+      <article class="option option-map">
+        <div class="option-copy">
+          <p class="eyebrow">Option 3</p>
+          <h2>Course Map</h2>
+          <p>Visual, calmer, and more golf-forward. Best if the dashboard should feel distinctive and memorable.</p>
+        </div>
+        <section class="mock app-map" aria-label="Course Map preview">
+          <div class="app-bar">
+            <div class="mini-brand"><img src="./assets/partrack-mark.png" alt="" /><span>ParTrack</span></div>
+            <button>+</button>
+          </div>
+          <div class="course-scene">
+            <div class="fairway"></div>
+            <div class="green"></div>
+            <div class="pin"></div>
+            <div class="sand sand-one"></div>
+            <div class="sand sand-two"></div>
+            <div class="index-float"><span>Index</span><strong>8.0</strong></div>
+          </div>
+          <div class="map-stats">
+            <div><span>Best</span><strong>8.2</strong></div>
+            <div><span>Window</span><strong>6/20</strong></div>
+          </div>
+          <div class="count-list">
+            <div><b>8.2</b><span>Desert Mesa</span></div>
+            <div><b>9.8</b><span>Wasatch Links</span></div>
+          </div>
+        </section>
+      </article>
+
+      <article id="option4" class="option option-tour">
+        <div class="option-copy">
+          <p class="eyebrow">Option 4</p>
+          <h2>Tournament Board</h2>
+          <p>High-contrast, scoreboard-inspired, and confident. Best if ParTrack should feel premium and decisive.</p>
+        </div>
+        <div class="tour-pages" aria-label="Tournament Board page previews">
+          <section class="mock app-tour" aria-label="Tournament Board dashboard preview">
+            <div class="screen-label tour-label">Dashboard</div>
+            <div class="app-bar">
+              <div class="mini-brand"><img src="./assets/partrack-mark.png" alt="" /><span>ParTrack</span></div>
+              <button>Round</button>
+            </div>
+            <div class="scoreboard">
+              <span>Estimated index</span>
+              <strong>8.0</strong>
+              <small>Using 2 of 6</small>
+            </div>
+            <div class="leader-row">
+              <span>Best differential</span>
+              <strong>8.2</strong>
+            </div>
+            <div class="leader-row">
+              <span>Average to par</span>
+              <strong>+13.7</strong>
+            </div>
+            <div class="tour-nav"><span></span><span></span><span></span></div>
+          </section>
+
+          <section class="mock app-tour" aria-label="Tournament Board rounds preview">
+            <div class="screen-label tour-label">Rounds</div>
+            <div class="app-bar">
+              <div class="mini-brand"><img src="./assets/partrack-mark.png" alt="" /><span>ParTrack</span></div>
+              <button>Export</button>
+            </div>
+            <div class="tour-table">
+              <div class="tour-table-head"><span>Course</span><span>Score</span><span>Diff</span></div>
+              <div><strong>Desert Mesa</strong><span>82</span><b>8.2</b></div>
+              <div><strong>Wasatch Links</strong><span>83</span><b>9.8</b></div>
+              <div><strong>Cedar Ridge</strong><span>86</span><b>14.9</b></div>
+            </div>
+            <div class="tour-scorecard">
+              <span>Out</span><b>40</b><span>In</span><b>42</b><span>Total</span><b>82</b>
+            </div>
+            <div class="leader-row">
+              <span>Index move</span>
+              <strong>-0.8</strong>
+            </div>
+          </section>
+
+          <section class="mock app-tour" aria-label="Tournament Board courses preview">
+            <div class="screen-label tour-label">Courses</div>
+            <div class="app-bar">
+              <div class="mini-brand"><img src="./assets/partrack-mark.png" alt="" /><span>ParTrack</span></div>
+              <button>Tee</button>
+            </div>
+            <div class="course-board">
+              <span>Wasatch Links</span>
+              <strong>Blue</strong>
+              <small>71.8 rating · 129 slope · par 72</small>
+            </div>
+            <div class="tour-yardage">
+              <div><span>1</span><b>385</b></div>
+              <div><span>2</span><b>412</b></div>
+              <div><span>3</span><b>168</b></div>
+              <div><span>4</span><b>536</b></div>
+              <div><span>5</span><b>397</b></div>
+              <div><span>6</span><b>421</b></div>
+            </div>
+            <div class="leader-row">
+              <span>Course average</span>
+              <strong>85.5</strong>
+            </div>
+          </section>
+
+          <section class="mock app-tour" aria-label="Tournament Board round entry preview">
+            <div class="screen-label tour-label">Round entry</div>
+            <div class="app-bar">
+              <div class="mini-brand"><img src="./assets/partrack-mark.png" alt="" /><span>ParTrack</span></div>
+              <button>Save</button>
+            </div>
+            <div class="tour-hole">
+              <span>Hole 4</span>
+              <strong>Par 5</strong>
+              <small>536 yards · hcp 7</small>
+            </div>
+            <div class="tour-score-grid">
+              <button>2<small>-3</small></button>
+              <button>3<small>-2</small></button>
+              <button>4<small>-1</small></button>
+              <button class="selected">5<small>Par</small></button>
+              <button>6<small>+1</small></button>
+              <button>7<small>+2</small></button>
+              <button>8<small>+3</small></button>
+              <button>9<small>+4</small></button>
+              <button>10<small>+5</small></button>
+            </div>
+            <div class="tour-nav"><span></span><span></span><span></span></div>
+          </section>
+        </div>
+      </article>
+
+      <article id="new-iterations" class="option option-new">
+        <div class="option-copy">
+          <p class="eyebrow">New Iterations</p>
+          <h2>Next Design Pass</h2>
+          <p>Three directions built from the Option 4 confidence, the compact Fox Hill round cards, and the softer charcoal/gold score treatment.</p>
+        </div>
+        <div class="iteration-pages" aria-label="New ParTrack design iterations">
+          <section class="mock iteration iteration-field" aria-label="Field Ledger home page design preview">
+            <div class="screen-label">Field Ledger · Home</div>
+            <div class="iteration-bar">
+              <div class="mini-brand"><img src="./assets/partrack-mark.png" alt="" /><span>ParTrack</span></div>
+              <button>Round</button>
+            </div>
+            <div class="field-hero">
+              <span>Estimated index</span>
+              <strong>8.0</strong>
+              <small>2 counting · 6 posted</small>
+            </div>
+            <div class="field-row">
+              <span>Best differential</span>
+              <strong>8.2</strong>
+            </div>
+            <div class="field-row">
+              <span>Average score</span>
+              <strong>85.7</strong>
+            </div>
+            <div class="field-round">
+              <div>
+                <small class="field-module-label">Most recent round</small>
+                <strong>Fox Hill Club</strong>
+                <span>Black · Apr 29 · Qualified</span>
+              </div>
+              <div class="iteration-score">
+                <span>To par</span>
+                <strong>+37</strong>
+                <small>Gross 107</small>
+              </div>
+            </div>
+            <div class="field-stats">
+              <span>Birdies+ <b>0</b></span>
+              <span>Pars <b>1</b></span>
+              <span>Bogeys+ <b>17</b></span>
+            </div>
+            <div class="iteration-actions">
+              <button class="primary">Enter round</button>
+              <button>View rounds</button>
+            </div>
+            <div class="iteration-tabbar" aria-label="App navigation">
+                <span class=""><b class="nav-birdie">3</b><small>Rounds</small></span><span class=""><b>⚑</b><small>Courses</small></span><span class="active"><b>⌂</b><small>Home</small></span><span class=""><b class="nav-chart" aria-hidden="true"><i></i><i></i><i></i></b><small>Stats</small></span><span class=""><b>⚙</b><small>Settings</small></span>
+              </div>
+          </section>
+
+          <section class="mock iteration iteration-quiet" aria-label="Quiet Club design preview">
+            <div class="screen-label">Quiet Club</div>
+            <div class="iteration-bar">
+              <div class="mini-brand"><img src="./assets/partrack-mark.png" alt="" /><span>ParTrack</span></div>
+              <button>+</button>
+            </div>
+            <div class="quiet-dashboard">
+              <div>
+                <span>Index</span>
+                <strong>8.0</strong>
+              </div>
+              <div>
+                <span>Full record</span>
+                <strong>6/20</strong>
+              </div>
+            </div>
+            <div class="quiet-card">
+              <div class="quiet-course">
+                <strong>Fox Hill Club</strong>
+                <span>Black · 18 holes · Longmont, CO</span>
+                <small>In current handicap window</small>
+              </div>
+              <div class="iteration-score">
+                <span>To par</span>
+                <strong>+37</strong>
+                <small>Gross 107</small>
+              </div>
+            </div>
+            <div class="quiet-grid">
+              <span>Par 3 avg <b>5.0</b></span>
+              <span>Par 4 avg <b>6.1</b></span>
+              <span>Par 5 avg <b>7.0</b></span>
+              <span>Diff <b>27.5</b></span>
+            </div>
+            <div class="iteration-actions">
+              <button class="primary">New round</button>
+              <button>Course list</button>
+            </div>
+            <div class="iteration-tabbar" aria-label="App navigation">
+                <span class="active"><b class="nav-birdie">3</b><small>Rounds</small></span><span class=""><b>⚑</b><small>Courses</small></span><span class=""><b>⌂</b><small>Home</small></span><span class=""><b class="nav-chart" aria-hidden="true"><i></i><i></i><i></i></b><small>Stats</small></span><span class=""><b>⚙</b><small>Settings</small></span>
+              </div>
+          </section>
+
+          <section class="mock iteration iteration-card" aria-label="Score Slip design preview">
+            <div class="screen-label">Score Slip</div>
+            <div class="iteration-bar">
+              <div class="mini-brand"><img src="./assets/partrack-mark.png" alt="" /><span>ParTrack</span></div>
+              <button>Save</button>
+            </div>
+            <div class="slip-card">
+              <div class="slip-head">
+                <span>Hole 10</span>
+                <strong>Par 4</strong>
+                <small>392 yards · hcp 11</small>
+              </div>
+              <div class="slip-scores">
+                <button>2<small>-2</small></button>
+                <button>3<small>-1</small></button>
+                <button class="selected">4<small>Par</small></button>
+                <button>5<small>+1</small></button>
+                <button>6<small>+2</small></button>
+                <button>7<small>+3</small></button>
+              </div>
+            </div>
+            <div class="slip-progress">
+              <span class="done">1</span><span class="done">2</span><span class="done">3</span><span class="done">4</span><span class="done">5</span><span class="done">6</span><span class="done">7</span><span class="done">8</span><span class="done">9</span>
+              <span class="active">10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span>
+            </div>
+            <p class="iteration-note">No total, no to-par, no differential while scoring.</p>
+            <div class="iteration-actions slip-actions">
+              <button>Back</button>
+              <button class="primary">Next hole</button>
+            </div>
+            <div class="iteration-tabbar" aria-label="App navigation">
+                <span class="active"><b class="nav-birdie">3</b><small>Rounds</small></span><span class=""><b>⚑</b><small>Courses</small></span><span class=""><b>⌂</b><small>Home</small></span><span class=""><b class="nav-chart" aria-hidden="true"><i></i><i></i><i></i></b><small>Stats</small></span><span class=""><b>⚙</b><small>Settings</small></span>
+              </div>
+          </section>
+          <section class="mock iteration iteration-ledger-page" aria-label="Field Ledger courses page preview">
+            <div class="screen-label">Field Ledger · Courses</div>
+            <div class="iteration-bar">
+              <div class="mini-brand"><img src="./assets/partrack-mark.png" alt="" /><span>ParTrack</span></div>
+              <button>Tee</button>
+            </div>
+            <div class="ledger-page-title">
+              <span>Courses</span>
+              <strong>3 courses</strong>
+            </div>
+            <div class="ledger-course-card featured">
+              <small>Most played</small>
+              <strong>Fox Hill Club</strong>
+              <span>Black · 72.9 / 140 · Par 70</span>
+              <div class="ledger-course-metrics">
+                <b>2 rounds</b>
+                <b>Avg 101.0</b>
+              </div>
+            </div>
+            <div class="ledger-list">
+              <div><span>Wasatch Links</span><b>Blue</b></div>
+              <div><span>Desert Mesa</span><b>Gold</b></div>
+              <div><span>Cedar Ridge</span><b>White</b></div>
+            </div>
+            <div class="iteration-actions">
+              <button class="primary">Add course</button>
+              <button>Catalog</button>
+            </div>
+            <div class="iteration-tabbar" aria-label="App navigation">
+                <span class=""><b class="nav-birdie">3</b><small>Rounds</small></span><span class="active"><b>⚑</b><small>Courses</small></span><span class=""><b>⌂</b><small>Home</small></span><span class=""><b class="nav-chart" aria-hidden="true"><i></i><i></i><i></i></b><small>Stats</small></span><span class=""><b>⚙</b><small>Settings</small></span>
+              </div>
+          </section>
+
+          <section class="mock iteration iteration-ledger-page" aria-label="Field Ledger add course page preview">
+            <div class="screen-label">Field Ledger · Add Course</div>
+            <div class="iteration-bar">
+              <div class="mini-brand"><img src="./assets/partrack-mark.png" alt="" /><span>ParTrack</span></div>
+              <button>Save</button>
+            </div>
+            <div class="ledger-page-title">
+              <span>New course</span>
+              <strong>Add course</strong>
+            </div>
+            <div class="ledger-form-card">
+              <label><span>Course name</span><b>Fox Hill Club</b></label>
+              <label><span>Tee</span><b>Black</b></label>
+              <div class="ledger-form-grid">
+                <label><span>Rating</span><b>72.9</b></label>
+                <label><span>Slope</span><b>140</b></label>
+                <label><span>Par</span><b>70</b></label>
+                <label><span>Holes</span><b>18</b></label>
+              </div>
+            </div>
+            <div class="iteration-actions single compact-action">
+              <button class="primary">Save course</button>
+            </div>
+            <div class="iteration-tabbar" aria-label="App navigation">
+                <span class=""><b class="nav-birdie">3</b><small>Rounds</small></span><span class="active"><b>⚑</b><small>Courses</small></span><span class=""><b>⌂</b><small>Home</small></span><span class=""><b class="nav-chart" aria-hidden="true"><i></i><i></i><i></i></b><small>Stats</small></span><span class=""><b>⚙</b><small>Settings</small></span>
+              </div>
+          </section>
+
+          <section class="mock iteration iteration-ledger-page" aria-label="Field Ledger catalog page preview">
+            <div class="screen-label">Field Ledger · Catalog</div>
+            <div class="iteration-bar">
+              <div class="mini-brand"><img src="./assets/partrack-mark.png" alt="" /><span>ParTrack</span></div>
+              <button>Done</button>
+            </div>
+            <div class="ledger-page-title">
+              <span>Catalog</span>
+              <strong>Find courses</strong>
+            </div>
+            <div class="ledger-search">Search course catalog</div>
+            <div class="ledger-list ledger-catalog-list">
+              <div><span>Fox Hill Club</span><b>Add</b></div>
+              <div><span>Wasatch Links</span><b>Added</b></div>
+              <div><span>Desert Mesa</span><b>Add</b></div>
+              <div><span>Cedar Ridge</span><b>Add</b></div>
+            </div>
+            <p class="iteration-note">Catalog stays lightweight: select a course, then choose tees only when needed.</p>
+            <div class="iteration-tabbar" aria-label="App navigation">
+                <span class=""><b class="nav-birdie">3</b><small>Rounds</small></span><span class="active"><b>⚑</b><small>Courses</small></span><span class=""><b>⌂</b><small>Home</small></span><span class=""><b class="nav-chart" aria-hidden="true"><i></i><i></i><i></i></b><small>Stats</small></span><span class=""><b>⚙</b><small>Settings</small></span>
+              </div>
+          </section>
+
+          <section class="mock iteration iteration-ledger-page" aria-label="Field Ledger stats page preview">
+            <div class="screen-label">Field Ledger · Stats</div>
+            <div class="iteration-bar">
+              <div class="mini-brand"><img src="./assets/partrack-mark.png" alt="" /><span>ParTrack</span></div>
+              <button>Filter</button>
+            </div>
+            <div class="ledger-page-title">
+              <span>Stats</span>
+              <strong>Last 20</strong>
+            </div>
+            <div class="ledger-chart">
+              <span></span><span></span><span></span><span></span><span></span>
+              <svg viewBox="0 0 260 96" aria-hidden="true">
+                <path d="M10 72 L62 56 L114 62 L166 38 L218 47 L250 29" />
+                <circle cx="10" cy="72" r="4" /><circle cx="62" cy="56" r="4" /><circle cx="114" cy="62" r="4" /><circle cx="166" cy="38" r="4" /><circle cx="218" cy="47" r="4" /><circle cx="250" cy="29" r="4" />
+              </svg>
+            </div>
+            <div class="ledger-stat-grid">
+              <div><span>Par 3 avg</span><strong>5.0</strong></div>
+              <div><span>Par 4 avg</span><strong>6.1</strong></div>
+              <div><span>Par 5 avg</span><strong>7.0</strong></div>
+              <div><span>Best diff</span><strong>8.2</strong></div>
+            </div>
+            <div class="field-row">
+              <span>Counting scores</span>
+              <strong>2 of 6</strong>
+            </div>
+            <div class="iteration-tabbar" aria-label="App navigation">
+                <span class=""><b class="nav-birdie">3</b><small>Rounds</small></span><span class=""><b>⚑</b><small>Courses</small></span><span class=""><b>⌂</b><small>Home</small></span><span class="active"><b class="nav-chart" aria-hidden="true"><i></i><i></i><i></i></b><small>Stats</small></span><span class=""><b>⚙</b><small>Settings</small></span>
+              </div>
+          </section>
+
+          <section class="mock iteration iteration-ledger-page" aria-label="Field Ledger settings page preview">
+            <div class="screen-label">Field Ledger · Settings</div>
+            <div class="iteration-bar">
+              <div class="mini-brand"><img src="./assets/partrack-mark.png" alt="" /><span>ParTrack</span></div>
+              <button>Done</button>
+            </div>
+            <div class="ledger-page-title ledger-settings-title">
+              <span>Settings</span>
+            </div>
+            <div class="ledger-settings-list">
+              <div>
+                <span>Theme</span>
+                <b>Device</b>
+              </div>
+              <div>
+                <span>Sync status</span>
+                <b>Synced</b>
+              </div>
+            </div>
+            <div class="iteration-actions single">
+              <button class="primary">Sync now</button>
+            </div>
+            <div class="iteration-tabbar" aria-label="App navigation">
+                <span class=""><b class="nav-birdie">3</b><small>Rounds</small></span><span class=""><b>⚑</b><small>Courses</small></span><span class=""><b>⌂</b><small>Home</small></span><span class=""><b class="nav-chart" aria-hidden="true"><i></i><i></i><i></i></b><small>Stats</small></span><span class="active"><b>⚙</b><small>Settings</small></span>
+              </div>
+          </section>
+
+        </div>
+      </article>
+
+    </main>
+  </body>
+</html>

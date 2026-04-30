@@ -12,7 +12,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <title>ParTrack</title>
     <link rel="manifest" href="./public/manifest.webmanifest" />
-    <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
+    <link rel="icon" href="./assets/partrack-mark.png" type="image/png" />
     <link rel="apple-touch-icon" sizes="192x192" href="./public/icons/icon-192.png" />
     <link rel="stylesheet" href="./styles.css" />
     <script src="./env-config.js"></script>
@@ -20,7 +20,13 @@
   <body>
     <section id="authScreen" class="auth-screen" hidden>
       <form id="authForm" class="auth-card" data-mode="login">
-        <img src="./assets/logo.svg" alt="ParTrack" />
+        <div class="auth-brand">
+          <img src="./assets/partrack-mark.png" alt="" />
+          <div>
+            <strong>ParTrack</strong>
+            <span>Personal Handicap Tracker</span>
+          </div>
+        </div>
         <p class="eyebrow">Private synced handicap tracker</p>
         <h2>Sign in</h2>
         <p class="panel-note">Create an account to sync your courses, rounds, and handicap record across devices. Community-submitted courses can be used immediately and reviewed later.</p>
@@ -45,24 +51,25 @@
     <div class="app-shell" hidden>
       <aside class="rail">
         <a class="brand" href="#dashboard" aria-label="ParTrack dashboard">
-          <img src="./assets/logo.svg" alt="ParTrack" />
+          <img src="./assets/partrack-mark.png" alt="" />
+          <span>ParTrack</span>
         </a>
         <nav class="nav" aria-label="Primary">
-          <a href="#dashboard" data-view-link="dashboard" aria-label="Dashboard">
+          <a href="#dashboard" data-view-link="dashboard" aria-label="Home">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 13.5 12 6l8 7.5"/><path d="M6.5 12v7h11v-7"/><path d="M10 19v-5h4v5"/></svg>
-            <span>Dashboard</span>
+            <span>Home</span>
           </a>
           <a href="#rounds" data-view-link="rounds" aria-label="Rounds">
-            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 4h10"/><path d="M8 4v16"/><path d="M16 4v16"/><path d="M6 8h12"/><path d="M6 12h12"/><path d="M6 16h12"/></svg>
+            <span class="nav-birdie-icon" aria-hidden="true">3</span>
             <span>Rounds</span>
           </a>
           <a href="#courses" data-view-link="courses" aria-label="Courses">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 19c5-2 9-2 14 0"/><path d="M6 16c3-5 9-5 12 0"/><path d="M12 5v10"/><path d="M12 5h6l-2 2 2 2h-6"/></svg>
             <span>Courses</span>
           </a>
-          <a href="#analytics" data-view-link="analytics" aria-label="Analytics">
+          <a href="#analytics" data-view-link="analytics" aria-label="Stats">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 19h16"/><path d="M7 16V9"/><path d="M12 16V5"/><path d="M17 16v-4"/></svg>
-            <span>Analytics</span>
+            <span>Stats</span>
           </a>
           <a href="#settings" data-view-link="settings" aria-label="Settings">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.4 1a7.4 7.4 0 0 0-2-1.2L14.2 3h-4.4l-.3 2.7a7.4 7.4 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.4-1a7.4 7.4 0 0 0 2 1.2l.3 2.7h4.4l.3-2.7a7.4 7.4 0 0 0 2-1.2l2.4 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2Z"/></svg>
@@ -79,20 +86,20 @@
         <header class="topbar">
           <div class="topbar-title">
             <a class="topbar-brand" href="#dashboard" aria-label="ParTrack dashboard">
-              <img src="./assets/icon.svg" alt="" />
+              <img src="./assets/partrack-mark.png" alt="" />
               <span>ParTrack</span>
             </a>
             <p class="eyebrow">Private handicap tracker</p>
-            <h1 id="view-title">Dashboard</h1>
+            <h1 id="view-title">Home</h1>
           </div>
           <div class="topbar-meta" aria-label="App status">
             <span id="todayLabel"></span>
-            <span id="syncStatus">Local data</span>
+            <span id="syncStatus">Supabase sync</span>
           </div>
           <button class="secondary-action logout-action" type="button" data-logout>Logout</button>
           <button class="primary-action" type="button" data-open-round>
             <span aria-hidden="true">+</span>
-            Add round
+            Round
           </button>
         </header>
 
@@ -115,27 +122,7 @@
                   </div>
                 </div>
               </div>
-              <div class="course-visual" aria-hidden="true">
-                <div class="fairway"></div>
-                <div class="green"></div>
-                <div class="pin"></div>
-                <div class="bunker bunker-one"></div>
-                <div class="bunker bunker-two"></div>
-                <div class="score-float">
-                  <div>
-                    <span>Avg score</span>
-                    <strong id="heroAvgScore">--</strong>
-                  </div>
-                  <div>
-                    <span>Favorite course</span>
-                    <strong id="heroFavoriteCourse">--</strong>
-                  </div>
-                  <div>
-                    <span>Latest hcp change</span>
-                    <strong id="heroLatestChange">--</strong>
-                  </div>
-                </div>
-              </div>
+              <div id="homeRecentRound" class="field-home-recent"></div>
             </article>
 
             <article class="stat-card" data-tone="blue">
@@ -144,7 +131,7 @@
               <small id="recentWindow">0 in current window</small>
             </article>
             <article class="stat-card" data-tone="gold">
-              <span>Best score</span>
+              <span>Best differential</span>
               <strong id="bestScore">--</strong>
               <small id="bestScoreLabel">No rounds yet</small>
             </article>
@@ -183,46 +170,34 @@
         <section id="rounds" class="view" aria-label="Rounds">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">Scoring record</p>
+              <p class="eyebrow">Field Ledger · Rounds</p>
+              <h2>Rounds</h2>
             </div>
-            <button class="secondary-action" type="button" data-export>Export JSON</button>
+            <button class="primary-action" type="button" data-open-round>Round</button>
           </div>
           <div id="roundList" class="round-list"></div>
         </section>
 
         <section id="courses" class="view" aria-label="Courses">
-          <div class="section-heading">
+          <div class="section-heading field-page-heading">
             <div>
-              <p class="eyebrow">Tee sets</p>
+              <p class="eyebrow">Field Ledger · Courses</p>
+              <h2 id="courseCountTitle">Courses</h2>
             </div>
-            <button class="primary-action" type="button" data-toggle-course-form>
-              <span aria-hidden="true">+</span>
-              Add course
-            </button>
+            <div class="button-row compact-row">
+              <button class="primary-action" type="button" data-toggle-course-form>Add course</button>
+              <button class="secondary-action" type="button" data-show-catalog>Catalog</button>
+            </div>
           </div>
-          <section class="panel catalog-panel" aria-labelledby="catalog-heading">
+          <section class="panel cloud-course-panel" id="courseCatalogPanel">
             <div class="panel-header">
               <div>
-                <p class="eyebrow">Shared catalog</p>
-                <h2 id="catalog-heading">Find course</h2>
-              </div>
-              <span id="catalogStatus" class="pill">Loading</span>
-            </div>
-            <label>
-              Search approved courses
-              <input id="catalogSearch" type="search" placeholder="Static catalog course, city, state, or tee" autocomplete="off" />
-            </label>
-            <div id="catalogResults" class="catalog-results" aria-live="polite"></div>
-          </section>
-          <section class="panel cloud-course-panel">
-            <div class="panel-header">
-              <div>
-                <p class="eyebrow">Cloud database</p>
-                <h2>Search saved courses</h2>
+                <p class="eyebrow">Catalog</p>
+                <h2>Find courses</h2>
               </div>
             </div>
             <label>
-              Search approved, unverified, or your draft courses
+              Search course catalog
               <input id="cloudCourseSearch" type="search" placeholder="Course, city, state, or tee" autocomplete="off" />
             </label>
           </section>
@@ -261,10 +236,6 @@
                 Slope
                 <input name="slope" type="number" min="55" max="155" step="1" required />
               </label>
-              <label>
-                Scorecard photo
-                <input name="coursePhoto" type="file" accept="image/*" />
-              </label>
               <label class="toggle-field">
                 <input name="shareUnverified" type="checkbox" />
                 <span>Share as unverified course</span>
@@ -302,10 +273,11 @@
           </form>
         </section>
 
-        <section id="analytics" class="view" aria-label="Analytics">
+        <section id="analytics" class="view" aria-label="Stats">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">Scoring patterns</p>
+              <p class="eyebrow">Field Ledger · Stats</p>
+              <h2>Stats</h2>
             </div>
           </div>
           <div class="panel analytics-panel">
@@ -346,31 +318,30 @@
         <section id="settings" class="view" aria-label="Settings">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">Device data</p>
+              <p class="eyebrow">Field Ledger · Settings</p>
+              <h2>Settings</h2>
             </div>
+            <button class="primary-action" type="button" data-go-home>Done</button>
           </div>
-          <div class="settings-grid">
-            <article class="panel">
-              <h3>Profile</h3>
-              <p id="profileSummary">Set up your player profile to personalize this device.</p>
+          <div class="settings-grid field-settings-grid">
+            <article class="panel field-settings-card">
+              <div class="settings-row">
+                <span>Theme</span>
+                <strong>Device</strong>
+              </div>
+              <div class="settings-row">
+                <span>Sync status</span>
+                <strong id="settingsSyncLabel">Synced</strong>
+              </div>
+              <button class="primary-action" type="button" data-refresh-cloud>Sync now</button>
+            </article>
+            <article class="panel settings-account-card">
+              <p class="eyebrow">Account</p>
+              <p id="profileSummary">Sign in to load your synced ParTrack profile.</p>
               <div class="button-row">
                 <button class="secondary-action" type="button" data-open-setup>Edit profile</button>
+                <button class="secondary-action" type="button" data-logout>Logout</button>
               </div>
-            </article>
-            <article class="panel">
-              <h3>Offline</h3>
-              <p id="offlineStatus">Checking service worker...</p>
-            </article>
-            <article class="panel">
-              <h3>Data</h3>
-              <p>Signed-in data syncs with Supabase. Local fallback data stays in this browser until you export or clear it.</p>
-              <div class="button-row">
-                <button class="danger-action" type="button" data-clear>Clear local data</button>
-              </div>
-            </article>
-            <article class="panel">
-              <h3>WHS estimate</h3>
-              <p>This app calculates a local estimate from completed hole scores, course rating, slope, and PCC. Official posting still belongs in your authorized handicap service.</p>
             </article>
           </div>
         </section>
@@ -402,11 +373,6 @@
           </label>
           <input name="pcc" type="hidden" value="0" />
         </div>
-        <label>
-          Scorecard photo
-          <input name="roundPhoto" type="file" accept="image/*" />
-        </label>
-
         <div id="selectedCourseMeta" class="selected-course"></div>
         <section class="score-entry" aria-labelledby="active-hole-heading">
           <div class="active-hole-card">
@@ -448,15 +414,15 @@
       </form>
     </dialog>
 
-    <dialog id="setupDialog">
+    <dialog id="setupDialog" class="setup-dialog">
       <form id="setupForm" method="dialog">
         <div class="dialog-header">
           <div>
-            <p class="eyebrow">First setup</p>
-            <h2>Welcome to ParTrack</h2>
+            <p class="eyebrow">Profile</p>
+            <h2>Update ParTrack profile</h2>
           </div>
         </div>
-        <p class="panel-note">Start fresh with a private profile. Your rounds stay on this device unless you export them.</p>
+        <p class="panel-note">Your display name is stored with your Supabase account.</p>
         <div class="form-grid">
           <label>
             Your name
@@ -464,7 +430,7 @@
           </label>
         </div>
         <div class="dialog-actions">
-          <button class="secondary-action" type="button" data-skip-setup>Skip</button>
+          <button class="secondary-action" type="button" data-skip-setup>Cancel</button>
           <button class="primary-action" type="submit">Save profile</button>
         </div>
       </form>

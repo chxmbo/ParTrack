@@ -1,4 +1,4 @@
-const CACHE_NAME = "local-handicap-tracker-v20";
+const CACHE_NAME = "partrack-supabase-v21";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -7,7 +7,6 @@ const APP_SHELL = [
   "./env-config.js",
   "./public/",
   "./public/index.html",
-  "./public/course-catalog.json",
   "./public/manifest.webmanifest",
   "./public/icons/icon-192.png",
   "./public/icons/icon-512.png",

@@ -4,10 +4,11 @@ const zlib = require("zlib");
 
 const outDir = path.resolve(__dirname, "../public/icons");
 const colors = {
-  green: [19, 43, 37, 255],
-  fairway: [223, 240, 223, 255],
-  gold: [241, 210, 139, 255],
-  red: [182, 77, 53, 255],
+  green: [7, 21, 17, 255],
+  greenLight: [18, 54, 44, 255],
+  playLight: [143, 210, 111, 255],
+  playDark: [63, 156, 85, 255],
+  shadow: [16, 48, 39, 120],
   white: [255, 255, 255, 255]
 };
 
@@ -45,6 +46,16 @@ function drawRect(data, size, x0, y0, x1, y1, color) {
   }
 }
 
+function drawRoundedRect(data, size, x0, y0, x1, y1, radius, color) {
+  for (let y = Math.floor(y0); y <= Math.ceil(y1); y++) {
+    for (let x = Math.floor(x0); x <= Math.ceil(x1); x++) {
+      const dx = x < x0 + radius ? x0 + radius - x : x > x1 - radius ? x - (x1 - radius) : 0;
+      const dy = y < y0 + radius ? y0 + radius - y : y > y1 - radius ? y - (y1 - radius) : 0;
+      if (dx * dx + dy * dy <= radius * radius) setPixel(data, size, x, y, color);
+    }
+  }
+}
+
 function drawPolygon(data, size, points, color) {
   const xs = points.map((point) => point[0]);
   const ys = points.map((point) => point[1]);
@@ -58,23 +69,32 @@ function drawPolygon(data, size, points, color) {
 function makeIcon(size) {
   const data = Buffer.alloc(size * size * 4);
   for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) setPixel(data, size, x, y, colors.green);
+    for (let x = 0; x < size; x++) {
+      const t = (x + y) / (size * 2);
+      const color = [
+        Math.round(colors.greenLight[0] * (1 - t) + colors.green[0] * t),
+        Math.round(colors.greenLight[1] * (1 - t) + colors.green[1] * t),
+        Math.round(colors.greenLight[2] * (1 - t) + colors.green[2] * t),
+        255
+      ];
+      setPixel(data, size, x, y, color);
+    }
   }
 
+  drawRoundedRect(data, size, 0.31 * size, 0.24 * size, 0.49 * size, 0.75 * size, 0.045 * size, colors.white);
+  drawRoundedRect(data, size, 0.40 * size, 0.24 * size, 0.86 * size, 0.54 * size, 0.15 * size, colors.white);
+  drawRoundedRect(data, size, 0.50 * size, 0.40 * size, 0.64 * size, 0.62 * size, 0.05 * size, colors.white);
+  drawRoundedRect(data, size, 0.50 * size, 0.40 * size, 0.72 * size, 0.51 * size, 0.035 * size, colors.shadow);
   drawPolygon(data, size, [
-    [0.18 * size, 0.68 * size],
-    [0.36 * size, 0.61 * size],
-    [0.48 * size, 0.4 * size],
-    [0.64 * size, 0.28 * size],
-    [0.82 * size, 0.28 * size],
-    [0.74 * size, 0.57 * size],
-    [0.55 * size, 0.72 * size],
-    [0.34 * size, 0.74 * size]
-  ], colors.fairway);
-  drawCircle(data, size, 0.71 * size, 0.3 * size, 0.08 * size, colors.gold);
-  drawRect(data, size, 0.47 * size, 0.23 * size, 0.53 * size, 0.75 * size, colors.white);
-  drawPolygon(data, size, [[0.53 * size, 0.23 * size], [0.77 * size, 0.23 * size], [0.53 * size, 0.37 * size]], colors.red);
-  drawCircle(data, size, 0.5 * size, 0.75 * size, 0.065 * size, colors.white);
+    [0.46 * size, 0.38 * size],
+    [0.75 * size, 0.50 * size],
+    [0.46 * size, 0.64 * size]
+  ], colors.playLight);
+  drawPolygon(data, size, [
+    [0.51 * size, 0.42 * size],
+    [0.68 * size, 0.50 * size],
+    [0.51 * size, 0.58 * size]
+  ], colors.playDark);
 
   return encodePng(size, data);
 }

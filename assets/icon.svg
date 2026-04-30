@@ -1,9 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
   <title id="title">ParTrack icon</title>
-  <rect width="128" height="128" rx="24" fill="#173f31"/>
-  <path d="M26 87c17-4 24-18 31-33 7-16 20-26 45-20-4 23-16 42-33 52-13 7-27 8-43 1Z" fill="#dff0df"/>
-  <circle cx="91" cy="38" r="10" fill="#f1d28b"/>
-  <path d="M62 26v67" stroke="#ffffff" stroke-width="7" stroke-linecap="round"/>
-  <path d="M66 27h31L66 45Z" fill="#b64d35"/>
-  <circle cx="62" cy="93" r="8" fill="#ffffff"/>
+  <defs>
+    <linearGradient id="bg" x1="20" y1="12" x2="108" y2="116" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#123a30"/>
+      <stop offset="1" stop-color="#071511"/>
+    </linearGradient>
+    <linearGradient id="flag" x1="56" y1="49" x2="86" y2="67" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8fd26f"/>
+      <stop offset="1" stop-color="#3f9c55"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000000" flood-opacity=".18"/>
+    </filter>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="30" fill="url(#bg)"/>
+  <path d="M59 50c0-4 4-6 7-4l25 14c4 2 4 7 0 9L66 83c-3 2-7 0-7-4V50Z" fill="url(#flag)"/>
+  <path d="M47 96c-5 0-8-3-8-8V39c0-5 3-8 8-8h29c20 0 35 15 35 34S96 98 76 98H66V78h10c8 0 15-6 15-13 0-8-7-14-15-14H63v37c0 5-3 8-8 8h-8Z" fill="#ffffff" filter="url(#softShadow)"/>
+  <path d="M63 51h13c8 0 15 6 15 14 0 7-7 13-15 13H66V65h10c1 0 2 0 2-1 0 0-1-1-2-1H63V51Z" fill="#0c271f" opacity=".52"/>
 </svg>

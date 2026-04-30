@@ -12,6 +12,7 @@ for (const entry of entries) {
   fs.cpSync(path.join(root, entry), path.join(dist, entry), { recursive: true });
 }
 
+fs.rmSync(path.join(dist, "public", "course-catalog.json"), { force: true });
 fs.writeFileSync(path.join(dist, ".nojekyll"), "");
 
 const envConfig = {
