@@ -14,8 +14,8 @@
     <link rel="manifest" href="./public/manifest.webmanifest" />
     <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" sizes="192x192" href="./public/icons/icon-192-v27.png" />
-    <link rel="stylesheet" href="./styles.css?v=27" />
-    <script src="./env-config.js?v=27"></script>
+    <link rel="stylesheet" href="./styles.css?v=29" />
+    <script src="./env-config.js?v=29"></script>
   </head>
   <body>
     <section id="authScreen" class="auth-screen" hidden>
@@ -184,9 +184,9 @@
               <p class="eyebrow">Field Ledger · Courses</p>
               <h2 id="courseCountTitle">Courses</h2>
             </div>
-            <div class="button-row compact-row">
-              <button class="primary-action" type="button" data-toggle-course-form>Add course</button>
-              <button class="secondary-action" type="button" data-show-catalog>Catalog</button>
+            <div class="course-mode-tabs" role="tablist" aria-label="Course view">
+              <button class="course-mode-tab is-active" type="button" data-course-mode="mine" role="tab" aria-selected="true">My courses</button>
+              <button class="course-mode-tab" type="button" data-course-mode="catalog" role="tab" aria-selected="false">Course catalog</button>
             </div>
           </div>
           <section class="panel cloud-course-panel" id="courseCatalogPanel">
@@ -195,6 +195,7 @@
                 <p class="eyebrow">Catalog</p>
                 <h2>Find courses</h2>
               </div>
+              <button class="secondary-action" type="button" data-toggle-course-form>Add missing course</button>
             </div>
             <label>
               Search course catalog
@@ -436,6 +437,6 @@
       </form>
     </dialog>
 
-    <script type="module" src="./app.js?v=27"></script>
+    <script type="module" src="./app.js?v=29"></script>
   </body>
 </html>

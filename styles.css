@@ -3028,6 +3028,31 @@ main {
   margin-top: 0;
 }
 
+.course-mode-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  width: min(100%, 360px);
+  padding: 5px;
+  border: 1px solid var(--field-line);
+  border-radius: 10px;
+  background: var(--field-panel);
+}
+
+.course-mode-tab {
+  min-height: 46px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--field-muted);
+  font-weight: 900;
+}
+
+.course-mode-tab.is-active {
+  background: var(--field-gold);
+  color: #101410;
+}
+
 .round-summary,
 .course-summary {
   min-height: 0;
@@ -3107,6 +3132,14 @@ main {
 
   .topbar-title h1 {
     font-size: 2.8rem;
+  }
+
+  .field-page-heading {
+    align-items: stretch;
+  }
+
+  .course-mode-tabs {
+    width: 100%;
   }
 
   .nav a span {
@@ -3233,7 +3266,8 @@ main {
   .primary-action,
   .topbar .primary-action,
   .field-page-heading .primary-action,
-  .field-settings-card .primary-action {
+  .field-settings-card .primary-action,
+  .course-mode-tab.is-active {
     background: var(--field-gold);
     color: #14140d;
   }

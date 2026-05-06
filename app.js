@@ -2,6 +2,7 @@ const SUPABASE_CONFIG = window.PARTRACK_ENV || {};
 const supabaseUrl = SUPABASE_CONFIG.VITE_SUPABASE_URL || "";
 const supabaseAnonKey = SUPABASE_CONFIG.VITE_SUPABASE_ANON_KEY || "";
 const supabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+const localPreviewMode = window.location.protocol === "file:";
 let supabase = null;
 
 function authRedirectUrl() {
@@ -111,6 +112,7 @@ let editingRoundId = null;
 let authMode = "login";
 let remoteSession = null;
 let remoteCourseSearchTerm = "";
+let courseMode = "mine";
 let preferredRoundCourseId = null;
 const roundHoleState = {
   activeHole: 1,
@@ -193,6 +195,12 @@ function canVerifyCourse(course) {
 }
 
 function setSignedInUi(isSignedIn) {
+  if (localPreviewMode) {
+    authScreen.hidden = true;
+    appShell.hidden = false;
+    setSyncStatus("Local preview");
+    return;
+  }
   if (!supabase) {
     authScreen.hidden = false;
     appShell.hidden = true;
@@ -1003,21 +1011,47 @@ function renderCourses() {
   const target = document.querySelector("#courseList");
   const currentHandicapIndex = handicapSummary().index;
   const countTitle = document.querySelector("#courseCountTitle");
-  if (countTitle) countTitle.textContent = `${courseGroups().length} ${courseGroups().length === 1 ? "course" : "courses"}`;
-  if (!state.courses.length) {
-    target.innerHTML = `<div class="empty">Search community courses above or add a course manually to start tracking rounds.</div>`;
-    return;
-  }
-
-  target.innerHTML = courseGroups()
+  const catalogPanel = document.querySelector("#courseCatalogPanel");
+  const modeTabs = document.querySelectorAll("[data-course-mode]");
+  const myCourseIds = new Set(state.rounds.map((round) => round.courseId));
+  const isMyCourse = (course) => myCourseIds.has(course.id) || course.createdBy === remoteUserId();
+  const groups = courseGroups()
+    .map((group) => ({
+      ...group,
+      courses: group.courses.filter((course) => courseMode === "catalog" ? true : isMyCourse(course))
+    }))
+    .filter((group) => group.courses.length)
     .filter((group) => {
-      if (!remoteCourseSearchTerm) return true;
+      if (courseMode !== "catalog" || !remoteCourseSearchTerm) return true;
       const text = [
         group.name,
         ...group.courses.flatMap((course) => [course.tee, course.city, course.state, course.country, course.status])
       ].filter(Boolean).join(" ").toLowerCase();
       return text.includes(remoteCourseSearchTerm);
-    })
+    });
+
+  if (catalogPanel) catalogPanel.hidden = courseMode !== "catalog";
+  modeTabs.forEach((button) => {
+    const isActive = button.dataset.courseMode === courseMode;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-selected", String(isActive));
+  });
+
+  if (countTitle) {
+    const count = groups.length;
+    countTitle.textContent = courseMode === "catalog"
+      ? `${count} catalog ${count === 1 ? "course" : "courses"}`
+      : `${count} ${count === 1 ? "course" : "courses"}`;
+  }
+
+  if (!groups.length) {
+    target.innerHTML = courseMode === "catalog"
+      ? `<div class="empty">Search the course catalog or add a missing course to make it available for rounds.</div>`
+      : `<div class="empty">Courses you create or play will appear here. Open the course catalog to find a course and start a round.</div>`;
+    return;
+  }
+
+  target.innerHTML = groups
     .map((group) => {
       const selectedId = selectedCourseIdsByName[group.name] || group.courses[0].id;
       const course = group.courses.find((item) => item.id === selectedId) || group.courses[0];
@@ -1061,6 +1095,7 @@ function renderCourses() {
             ${course.backendCourseId && course.status !== "approved" ? `<div class="course-note">${course.isPublicUnverified ? "Community-submitted and not yet reviewed." : "Private draft, visible only to you until approved."}</div>` : ""}
             ${renderCourseCard(course)}
             <div class="card-actions">
+              <button class="primary-action" type="button" data-start-course-round="${course.id}">Start round</button>
               ${canPublishCourse(course) ? `<button class="secondary-action" type="button" data-publish-course="${course.id}">Publish unverified</button>` : ""}
               ${canVerifyCourse(course) ? `<button class="primary-action" type="button" data-verify-course="${course.id}">Verify course</button>` : ""}
               <button class="delete-button" type="button" data-delete-course="${course.id}">Delete tee</button>
@@ -1648,6 +1683,15 @@ async function signOut() {
 }
 
 async function initializeAuth() {
+  if (localPreviewMode) {
+    state.profile = {
+      name: "Local Preview",
+      setupComplete: true
+    };
+    setSignedInUi(true);
+    return;
+  }
+
   await createSupabaseClient();
   if (!supabase) {
     setSignedInUi(false);
@@ -1874,6 +1918,7 @@ document.addEventListener("click", async (event) => {
   const editRoundButton = event.target.closest("[data-edit-round]");
   const roundButton = event.target.closest("[data-delete-round]");
   const courseButton = event.target.closest("[data-delete-course]");
+  const startCourseRoundButton = event.target.closest("[data-start-course-round]");
   const publishCourseButton = event.target.closest("[data-publish-course]");
   const verifyCourseButton = event.target.closest("[data-verify-course]");
   const strokeButton = event.target.closest("[data-stroke]");
@@ -1887,6 +1932,9 @@ document.addEventListener("click", async (event) => {
   if (editRoundButton) {
     const round = state.rounds.find((item) => item.id === editRoundButton.dataset.editRound);
     if (round) openRoundDialog(round);
+  }
+  if (startCourseRoundButton) {
+    openRoundDialog(null, startCourseRoundButton.dataset.startCourseRound);
   }
   if (publishCourseButton) {
     const course = courseById(publishCourseButton.dataset.publishCourse);
@@ -1962,9 +2010,12 @@ document.addEventListener("change", (event) => {
   renderCourses();
 });
 
-document.querySelector("[data-show-catalog]")?.addEventListener("click", () => {
-  document.querySelector("#courseCatalogPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  cloudCourseSearch?.focus();
+document.querySelectorAll("[data-course-mode]").forEach((button) => {
+  button.addEventListener("click", () => {
+    courseMode = button.dataset.courseMode || "mine";
+    renderCourses();
+    if (courseMode === "catalog") cloudCourseSearch?.focus();
+  });
 });
 
 document.querySelector("[data-refresh-cloud]")?.addEventListener("click", async () => {

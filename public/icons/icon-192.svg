@@ -1,16 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
-  <title id="title">ParTrack icon</title>
-  <defs>
-    <linearGradient id="bg" x1="16" y1="12" x2="112" y2="116" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#123a30"/>
-      <stop offset="1" stop-color="#071511"/>
-    </linearGradient>
-    <linearGradient id="flag" x1="58" y1="51" x2="89" y2="73" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#8fd26f"/>
-      <stop offset="1" stop-color="#3f9c55"/>
-    </linearGradient>
-  </defs>
-  <rect width="128" height="128" rx="30" fill="url(#bg)"/>
-  <path d="M59 52c0-4 4-6 7-4l22 12c4 2 4 7 0 9L66 81c-3 2-7 0-7-4V52Z" fill="url(#flag)"/>
-  <path fill="#ffffff" fill-rule="evenodd" d="M43 98c-4 0-7-3-7-7V37c0-4 3-7 7-7h32c22 0 36 13 36 32s-14 32-36 32H58V76h17c10 0 17-5 17-14s-7-14-17-14H58v43c0 4-3 7-7 7h-8Zm15-50v28h17c10 0 17-5 17-14s-7-14-17-14H58Z"/>
+  <title id="title">ParTrack classic golf graph icon</title>
+  <rect x="10" y="10" width="108" height="108" rx="24" fill="#0c271f"/>
+  <path d="M32 89h66" stroke="#dcedd8" stroke-width="7" stroke-linecap="square"/>
+  <path d="M36 82l16-17 14 10 23-34" fill="none" stroke="#58b460" stroke-width="8" stroke-linejoin="miter" stroke-linecap="square"/>
+  <circle cx="36" cy="82" r="6" fill="#ffffff"/>
+  <circle cx="52" cy="65" r="6" fill="#ffffff"/>
+  <circle cx="66" cy="75" r="6" fill="#ffffff"/>
+  <circle cx="89" cy="41" r="8" fill="#f1d28b"/>
 </svg>
