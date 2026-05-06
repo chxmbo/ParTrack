@@ -759,6 +759,74 @@ h3 {
   min-width: 0;
 }
 
+.analytics-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.analytics-breadcrumb {
+  display: grid;
+  gap: 2px;
+}
+
+.analytics-breadcrumb span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.analytics-breadcrumb strong {
+  color: var(--green-dark);
+  font-size: clamp(1.2rem, 4vw, 1.8rem);
+  line-height: 1.05;
+}
+
+.analytics-drill-list {
+  display: grid;
+  gap: 12px;
+}
+
+.analytics-drill-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto 28px;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 84px;
+  padding: 16px;
+  border: 1px solid var(--field-line);
+  border-radius: 8px;
+  background: var(--field-surface);
+  color: var(--ink);
+  text-align: left;
+  box-shadow: var(--surface-glow);
+  cursor: pointer;
+}
+
+.analytics-drill-card:hover {
+  background: rgba(67, 143, 88, 0.06);
+}
+
+.analytics-drill-card span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.analytics-drill-card strong {
+  color: var(--green-dark);
+  font-size: 1.15rem;
+  line-height: 1.05;
+}
+
+.analytics-drill-card small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
 .panel {
   padding: 22px;
 }
@@ -2252,6 +2320,7 @@ dialog form {
   .compact-form,
   .course-meta-grid,
   .analytics-filters,
+  .analytics-drill-card,
   .round-setup,
   .form-grid {
     grid-template-columns: 1fr;

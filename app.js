@@ -108,6 +108,9 @@ const analyticsSummary = document.querySelector("#analyticsSummary");
 const holeAnalyticsRows = document.querySelector("#holeAnalyticsRows");
 const analyticsLocked = document.querySelector("#analyticsLocked");
 const analyticsContent = document.querySelector("#analyticsContent");
+const analyticsNav = document.querySelector("#analyticsNav");
+const analyticsDrillList = document.querySelector("#analyticsDrillList");
+const analyticsHoleWrap = document.querySelector("#analyticsHoleWrap");
 const cloudCourseSearch = document.querySelector("#cloudCourseSearch");
 const holeRows = document.querySelector("#holeRows");
 const holeTotals = document.querySelector("#holeTotals");
@@ -119,6 +122,9 @@ let authMode = "login";
 let remoteSession = null;
 let remoteCourseSearchTerm = "";
 let courseMode = "mine";
+let statsView = "overview";
+let selectedStatsCourseName = "";
+let selectedStatsTeeId = "";
 let preferredRoundCourseId = null;
 const roundHoleState = {
   activeHole: 1,
@@ -229,13 +235,13 @@ function setSignedInUi(isSignedIn) {
   if (!supabase) {
     authScreen.hidden = false;
     appShell.hidden = true;
-    setAuthStatus("Supabase is not configured for this build.");
-    setSyncStatus("Supabase required");
+    setAuthStatus("Account sync is not configured for this build.");
+    setSyncStatus("Sync unavailable");
     return;
   }
   authScreen.hidden = isSignedIn;
   appShell.hidden = !isSignedIn;
-  setSyncStatus(isSignedIn ? "Supabase sync" : "Sign in to sync");
+  setSyncStatus(isSignedIn ? "Synced" : "Sign in to sync");
 }
 
 async function ensureRemoteProfile(displayName = "") {
@@ -349,7 +355,7 @@ async function saveRemoteCourse(formData, holes) {
   const selectedExisting = existingCourseId ? courseById(existingCourseId) : null;
   let course = null;
   if (formData.get("courseFormMode") === "existing") {
-    if (!selectedExisting?.backendCourseId) throw new Error("Choose an existing Supabase course.");
+    if (!selectedExisting?.backendCourseId) throw new Error("Choose an existing course.");
     course = {
       id: selectedExisting.backendCourseId,
       name: selectedExisting.name,
@@ -392,14 +398,14 @@ async function saveRemoteCourse(formData, holes) {
     throw teeError;
   }
   const tee = Array.isArray(tees) ? tees[0] : null;
-  if (!tee?.id) throw new Error("Course saved, but no tee set came back from Supabase.");
+  if (!tee?.id) throw new Error("Course saved, but no tee set came back.");
   return normalizeRemoteCourse(course, tee);
 }
 
 async function saveRemoteRound(round, existingRound = null) {
   const course = courseById(round.courseId);
   if (!course?.backendCourseId || !course?.backendTeeId) {
-    throw new Error("Choose a Supabase course before saving a round.");
+    throw new Error("Choose a course before saving a round.");
   }
   const payload = {
     user_id: remoteUserId(),
@@ -613,7 +619,7 @@ function indexFromRecord(record) {
 }
 
 function handicapSummary() {
-  const record = scoringRecord();
+  const record = completedRoundRecord();
   return { record, ...indexFromRecord(record) };
 }
 
@@ -759,7 +765,7 @@ function bestScoreDetail(round, netToPar, handicapIndex, playingHandicapValue) {
 
 function indexStatus(summary) {
   if (!state.courses.length) {
-    return "Search the Supabase course database or add a course to start tracking.";
+    return "Search the course database or add a course to start tracking.";
   }
   if (summary.index === null) {
     const needed = 3 - summary.recent.length;
@@ -871,7 +877,7 @@ function renderRounds() {
   const handicapChanges = handicapChangesByRound(handicapRecord);
   const statusByRound = handicapStatusByRound(record);
   if (!record.length) {
-    target.innerHTML = '<div class="empty">No rounds yet. Choose a Supabase course or add a missing course, then use Add round to start your scoring record.</div>';
+    target.innerHTML = '<div class="empty">No rounds yet. Choose a course or add a missing course, then use Add round to start your scoring record.</div>';
     return;
   }
 
@@ -1095,12 +1101,11 @@ function renderScoreMark(hole) {
 
 function renderCourses() {
   const target = document.querySelector("#courseList");
-  const currentHandicapIndex = handicapSummary().index;
   const countTitle = document.querySelector("#courseCountTitle");
   const catalogPanel = document.querySelector("#courseCatalogPanel");
   const modeTabs = document.querySelectorAll("[data-course-mode]");
-  const myCourseIds = new Set(state.rounds.map((round) => round.courseId));
-  const isMyCourse = (course) => myCourseIds.has(course.id) || course.createdBy === remoteUserId();
+  const myCourseIds = new Set(completedRoundRecord().map((round) => round.courseId));
+  const isMyCourse = (course) => myCourseIds.has(course.id);
   const groups = courseGroups()
     .map((group) => ({
       ...group,
@@ -1142,61 +1147,7 @@ function renderCourses() {
     return;
   }
 
-  target.innerHTML = groups
-    .map((group) => {
-      const selectedId = selectedCourseIdsByName[group.name] || group.courses[0].id;
-      const course = group.courses.find((item) => item.id === selectedId) || group.courses[0];
-      selectedCourseIdsByName[group.name] = course.id;
-      const yards = totalYards(course);
-      const courseHandicap = Number.isFinite(currentHandicapIndex)
-        ? playingHandicap(course, currentHandicapIndex)
-        : null;
-      return `
-      <article class="course-item course-library-card">
-        <details class="course-details">
-          <summary class="course-summary">
-            <div class="course-summary-main">
-              <div class="course-title course-title-with-select">
-                <strong>${escapeHtml(group.name)}</strong>
-                ${remoteCourseBadge(course)}
-                <label class="tee-select-label">
-                  Tee
-                  <select data-course-tee-select="${escapeHtml(group.name)}">
-                    ${group.courses.map((teeSet) => `<option value="${teeSet.id}" ${teeSet.id === course.id ? "selected" : ""}>${escapeHtml(teeSet.tee)}</option>`).join("")}
-                  </select>
-                </label>
-              </div>
-              <div class="course-meta">
-                ${[course.city, course.state].filter(Boolean).length ? `<span>${escapeHtml([course.city, course.state].filter(Boolean).join(", "))}</span>` : ""}
-                <span>${Number(course.rating).toFixed(1)}/${course.slope}</span>
-                <span>Par ${totalPar(course)}</span>
-                ${yards ? `<span>${yards.toLocaleString()} yards</span>` : ""}
-                ${Number.isFinite(courseHandicap) ? `<span>Course hcp ${formatCourseHandicap(courseHandicap)}</span>` : ""}
-              </div>
-            </div>
-            <div class="course-summary-stats">
-              ${miniCourseMetric("Rounds", courseRounds(course).length)}
-              ${miniCourseMetric("Avg", courseAverageScore(course))}
-              ${miniCourseMetric("Yards", yards ? yards.toLocaleString() : "--")}
-            </div>
-            <span class="round-expand-cue" aria-hidden="true"></span>
-          </summary>
-          <div class="course-detail-body">
-            ${renderCourseStats(course)}
-            ${course.backendCourseId && course.status !== "approved" ? `<div class="course-note">${course.isPublicUnverified ? "Community-submitted and not yet reviewed." : "Private draft, visible only to you until approved."}</div>` : ""}
-            ${renderCourseCard(course)}
-            <div class="card-actions">
-              <button class="primary-action" type="button" data-start-course-round="${course.id}">Start round</button>
-              ${canPublishCourse(course) ? `<button class="secondary-action" type="button" data-publish-course="${course.id}">Publish unverified</button>` : ""}
-              ${canVerifyCourse(course) ? `<button class="primary-action" type="button" data-verify-course="${course.id}">Verify course</button>` : ""}
-              <button class="delete-button" type="button" data-delete-course="${course.id}">Delete tee</button>
-            </div>
-          </div>
-        </details>
-      </article>
-    `;
-    })
-    .join("");
+  target.innerHTML = renderCatalogCourseList(groups);
 }
 
 function renderCatalogCourseList(groups) {
@@ -1487,8 +1438,8 @@ function startRoundCard(course = selectedRoundCourse()) {
 }
 
 function renderAnalytics() {
-  if (!analyticsCourseSelect || !analyticsTeeSelect || !analyticsSummary || !holeAnalyticsRows) return;
-  const record = scoringRecord();
+  if (!analyticsSummary || !holeAnalyticsRows || !analyticsNav || !analyticsDrillList || !analyticsHoleWrap) return;
+  const record = completedRoundRecord();
   if (!record.length) {
     if (analyticsLocked) {
       analyticsLocked.hidden = false;
@@ -1506,6 +1457,8 @@ function renderAnalytics() {
     }
     if (analyticsContent) analyticsContent.hidden = true;
     analyticsSummary.innerHTML = "";
+    analyticsNav.innerHTML = "";
+    analyticsDrillList.innerHTML = "";
     holeAnalyticsRows.innerHTML = "";
     return;
   }
@@ -1516,28 +1469,157 @@ function renderAnalytics() {
   }
   if (analyticsContent) analyticsContent.hidden = false;
 
-  renderAnalyticsCourseSelect();
-  renderAnalyticsTeeSelect();
-  const course = courseById(analyticsTeeSelect.value);
-  const rounds = record.filter((round) => round.courseId === course?.id && Array.isArray(round.holes));
-  if (!course) {
-    analyticsSummary.innerHTML = metric("Rounds", "--") + metric("Avg score", "--") + metric("Best", "--") + metric("Worst", "--");
-    holeAnalyticsRows.innerHTML = `<tr><td colspan="8">Add a completed round to unlock hole analytics.</td></tr>`;
+  const playedNames = playedCourseNames();
+  if (statsView === "course" && !playedNames.includes(selectedStatsCourseName)) {
+    statsView = "overview";
+    selectedStatsCourseName = "";
+    selectedStatsTeeId = "";
+  }
+  if (statsView === "tee" && !courseById(selectedStatsTeeId)) {
+    statsView = selectedStatsCourseName ? "course" : "overview";
+    selectedStatsTeeId = "";
+  }
+
+  if (statsView === "course") {
+    renderAnalyticsCourse(record, selectedStatsCourseName);
+    return;
+  }
+  if (statsView === "tee") {
+    renderAnalyticsTee(record, selectedStatsTeeId);
     return;
   }
 
-  const scores = rounds.map((round) => round.score).filter(Number.isFinite);
-  const averageScore = scores.length ? round1(scores.reduce((sum, score) => sum + score, 0) / scores.length).toFixed(1) : "--";
-  const currentHandicapIndex = handicapSummary().index;
-  const courseHandicap = Number.isFinite(currentHandicapIndex) ? playingHandicap(course, currentHandicapIndex) : null;
+  renderAnalyticsOverview(record);
+}
+
+function roundCollectionStats(rounds) {
+  const scores = rounds.map((round) => Number(round.score)).filter(Number.isFinite);
+  const toPars = rounds.map((round) => Number(round.toPar)).filter(Number.isFinite);
+  const average = (values) => values.length ? round1(values.reduce((sum, value) => sum + value, 0) / values.length) : null;
+  return {
+    rounds: rounds.length,
+    averageScore: average(scores),
+    averageToPar: average(toPars),
+    best: scores.length ? Math.min(...scores) : null,
+    worst: scores.length ? Math.max(...scores) : null
+  };
+}
+
+function renderAnalyticsOverview(record) {
+  const stats = roundCollectionStats(record);
+  const summary = handicapSummary();
+  const handicapRecord = scoringRecord();
+  const latestHandicapRound = handicapRecord[0];
+  const latestChange = latestHandicapRound ? handicapChangesByRound(handicapRecord)[latestHandicapRound.id] : null;
+  analyticsHoleWrap.hidden = true;
+  analyticsNav.innerHTML = `<div class="analytics-breadcrumb"><span>Account stats</span></div>`;
   analyticsSummary.innerHTML = [
-    metric("Rounds", rounds.length),
-    metric("Avg score", averageScore),
-    metric("Best", scores.length ? Math.min(...scores) : "--"),
-    metric("Worst", scores.length ? Math.max(...scores) : "--"),
-    metric("Course hcp", Number.isFinite(courseHandicap) ? formatCourseHandicap(courseHandicap) : "--")
+    metric("Rounds", stats.rounds),
+    metric("Avg score", Number.isFinite(stats.averageScore) ? stats.averageScore.toFixed(1) : "--"),
+    metric("Best", Number.isFinite(stats.best) ? stats.best : "--"),
+    metric("Worst", Number.isFinite(stats.worst) ? stats.worst : "--"),
+    metric("Index", summary.index === null ? "--" : summary.index.toFixed(1)),
+    metric("Latest change", latestHandicapChangeLabel(latestChange))
   ].join("");
 
+  analyticsDrillList.innerHTML = playedCourseNames()
+    .map((name) => {
+      const rounds = record.filter((round) => round.course.name === name);
+      const courseStats = roundCollectionStats(rounds);
+      const tees = playedTeesByName(name);
+      const first = tees[0];
+      const location = first ? [first.city, first.state].filter(Boolean).join(", ") : "";
+      return `
+        <button class="analytics-drill-card" type="button" data-analytics-course="${escapeHtml(name)}">
+          <span>
+            <strong>${escapeHtml(name)}</strong>
+            <small>${[location, `${tees.length} ${tees.length === 1 ? "tee" : "tees"}`].filter(Boolean).map(escapeHtml).join(" · ")}</small>
+          </span>
+          <span>
+            <small>Rounds</small>
+            <strong>${courseStats.rounds}</strong>
+          </span>
+          <span>
+            <small>Avg</small>
+            <strong>${Number.isFinite(courseStats.averageScore) ? courseStats.averageScore.toFixed(1) : "--"}</strong>
+          </span>
+          <span class="round-expand-cue" aria-hidden="true"></span>
+        </button>
+      `;
+    })
+    .join("");
+  holeAnalyticsRows.innerHTML = "";
+}
+
+function renderAnalyticsCourse(record, courseName) {
+  const rounds = record.filter((round) => round.course.name === courseName && Array.isArray(round.holes));
+  const stats = roundCollectionStats(rounds);
+  const tees = playedTeesByName(courseName);
+  analyticsHoleWrap.hidden = true;
+  analyticsNav.innerHTML = `
+    <button class="secondary-action analytics-back" type="button" data-analytics-back="overview">Back to all stats</button>
+    <div class="analytics-breadcrumb"><span>Course</span><strong>${escapeHtml(courseName)}</strong></div>
+  `;
+  analyticsSummary.innerHTML = [
+    metric("Rounds", stats.rounds),
+    metric("Avg score", Number.isFinite(stats.averageScore) ? stats.averageScore.toFixed(1) : "--"),
+    metric("Best", Number.isFinite(stats.best) ? stats.best : "--"),
+    metric("Worst", Number.isFinite(stats.worst) ? stats.worst : "--"),
+    metric("Avg to par", Number.isFinite(stats.averageToPar) ? formatToPar(stats.averageToPar) : "--")
+  ].join("");
+
+  analyticsDrillList.innerHTML = tees
+    .map((course) => {
+      const teeRounds = rounds.filter((round) => round.courseId === course.id);
+      const teeStats = roundCollectionStats(teeRounds);
+      const yards = totalYards(course);
+      return `
+        <button class="analytics-drill-card" type="button" data-analytics-tee="${course.id}">
+          <span>
+            <strong>${escapeHtml(course.tee)}</strong>
+            <small>${Number(course.rating).toFixed(1)}/${course.slope} · Par ${totalPar(course)}${yards ? ` · ${yards.toLocaleString()} yards` : ""}</small>
+          </span>
+          <span>
+            <small>Rounds</small>
+            <strong>${teeStats.rounds}</strong>
+          </span>
+          <span>
+            <small>Avg</small>
+            <strong>${Number.isFinite(teeStats.averageScore) ? teeStats.averageScore.toFixed(1) : "--"}</strong>
+          </span>
+          <span class="round-expand-cue" aria-hidden="true"></span>
+        </button>
+      `;
+    })
+    .join("");
+  holeAnalyticsRows.innerHTML = "";
+}
+
+function renderAnalyticsTee(record, teeId) {
+  const course = courseById(teeId);
+  if (!course) {
+    statsView = selectedStatsCourseName ? "course" : "overview";
+    renderAnalytics();
+    return;
+  }
+  selectedStatsCourseName = course.name;
+  const rounds = record.filter((round) => round.courseId === course.id && Array.isArray(round.holes));
+  const stats = roundCollectionStats(rounds);
+  const currentHandicapIndex = handicapSummary().index;
+  const courseHandicap = Number.isFinite(currentHandicapIndex) ? playingHandicap(course, currentHandicapIndex) : null;
+  analyticsHoleWrap.hidden = false;
+  analyticsNav.innerHTML = `
+    <button class="secondary-action analytics-back" type="button" data-analytics-back="course">Back to ${escapeHtml(course.name)}</button>
+    <div class="analytics-breadcrumb"><span>Tee</span><strong>${escapeHtml(course.name)} · ${escapeHtml(course.tee)}</strong></div>
+  `;
+  analyticsSummary.innerHTML = [
+    metric("Rounds", stats.rounds),
+    metric("Avg score", Number.isFinite(stats.averageScore) ? stats.averageScore.toFixed(1) : "--"),
+    metric("Best", Number.isFinite(stats.best) ? stats.best : "--"),
+    metric("Worst", Number.isFinite(stats.worst) ? stats.worst : "--"),
+    metric("Course hcp", Number.isFinite(courseHandicap) ? formatCourseHandicap(courseHandicap) : "--")
+  ].join("");
+  analyticsDrillList.innerHTML = "";
   holeAnalyticsRows.innerHTML = course.holes.map((hole) => {
     const scoresForHole = rounds
       .map((round) => round.holes.find((roundHole) => roundHole.hole === hole.hole)?.strokes)
@@ -1580,13 +1662,13 @@ function renderAnalyticsTeeSelect() {
 }
 
 function playedCourseNames() {
-  const names = new Set(scoringRecord().filter((round) => Array.isArray(round.holes)).map((round) => round.course.name));
+  const names = new Set(completedRoundRecord().filter((round) => Array.isArray(round.holes)).map((round) => round.course.name));
   return [...names].sort((a, b) => a.localeCompare(b));
 }
 
 function playedTeesByName(name) {
   const tees = new Map();
-  scoringRecord()
+  completedRoundRecord()
     .filter((round) => Array.isArray(round.holes) && round.course.name === name)
     .forEach((round) => tees.set(round.course.id, round.course));
   return [...tees.values()].sort((a, b) => a.tee.localeCompare(b.tee));
@@ -1924,7 +2006,7 @@ document.querySelectorAll("[data-open-round]").forEach((button) => {
 authForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!supabase) {
-    setAuthStatus("Supabase is not configured for this build.");
+    setAuthStatus("Account sync is not configured for this build.");
     return;
   }
   const formData = new FormData(authForm);
@@ -2000,12 +2082,12 @@ teeSelect.addEventListener("change", () => {
   startRoundCard();
 });
 
-analyticsCourseSelect.addEventListener("change", () => {
+analyticsCourseSelect?.addEventListener("change", () => {
   renderAnalyticsTeeSelect();
   renderAnalytics();
 });
 
-analyticsTeeSelect.addEventListener("change", renderAnalytics);
+analyticsTeeSelect?.addEventListener("change", renderAnalytics);
 cloudCourseSearch?.addEventListener("input", () => {
   remoteCourseSearchTerm = cloudCourseSearch.value.trim().toLowerCase();
   renderCourses();
@@ -2046,7 +2128,7 @@ roundForm.addEventListener("submit", async (event) => {
   const originalButtonText = saveButton?.textContent || "Add round";
   if (!hasRemoteSession()) {
     document.querySelector("#roundTotalScore").textContent = localPreviewMode
-      ? "Open the hosted app and sign in to save rounds to Supabase."
+      ? "Open the hosted app and sign in to save rounds to your account."
       : "Sign in to save rounds.";
     return;
   }
@@ -2139,6 +2221,9 @@ document.addEventListener("click", async (event) => {
   const startCourseRoundButton = event.target.closest("[data-start-course-round]");
   const publishCourseButton = event.target.closest("[data-publish-course]");
   const verifyCourseButton = event.target.closest("[data-verify-course]");
+  const analyticsCourseButton = event.target.closest("[data-analytics-course]");
+  const analyticsTeeButton = event.target.closest("[data-analytics-tee]");
+  const analyticsBackButton = event.target.closest("[data-analytics-back]");
   const strokeButton = event.target.closest("[data-stroke]");
   const roundHoleButton = event.target.closest("[data-round-hole]");
   const prevHoleButton = event.target.closest("[data-prev-hole]");
@@ -2186,8 +2271,32 @@ document.addEventListener("click", async (event) => {
     setSyncStatus("Course verified");
     render();
   }
+  if (analyticsCourseButton) {
+    statsView = "course";
+    selectedStatsCourseName = analyticsCourseButton.dataset.analyticsCourse;
+    selectedStatsTeeId = "";
+    renderAnalytics();
+  }
+  if (analyticsTeeButton) {
+    const course = courseById(analyticsTeeButton.dataset.analyticsTee);
+    statsView = "tee";
+    selectedStatsTeeId = analyticsTeeButton.dataset.analyticsTee;
+    selectedStatsCourseName = course?.name || selectedStatsCourseName;
+    renderAnalytics();
+  }
+  if (analyticsBackButton) {
+    if (analyticsBackButton.dataset.analyticsBack === "overview") {
+      statsView = "overview";
+      selectedStatsCourseName = "";
+      selectedStatsTeeId = "";
+    } else {
+      statsView = "course";
+      selectedStatsTeeId = "";
+    }
+    renderAnalytics();
+  }
   if (roundButton) {
-    if (!confirm("Delete this round from your Supabase account?")) return;
+    if (!confirm("Delete this round from your account?")) return;
     if (!hasRemoteSession()) {
       alert("Open the hosted app and sign in to delete synced rounds.");
       return;
@@ -2204,7 +2313,7 @@ document.addEventListener("click", async (event) => {
     if (error || !data) {
       roundButton.disabled = false;
       setSyncStatus("Delete failed");
-      alert(error?.message || "Supabase did not delete that round. It may already be gone or may not belong to this account.");
+      alert(error?.message || "That round could not be deleted. It may already be gone or may not belong to this account.");
       return;
     }
     await loadRemoteData();
@@ -2216,8 +2325,8 @@ document.addEventListener("click", async (event) => {
     const courseId = courseButton.dataset.deleteCourse;
     const affectedRounds = state.rounds.filter((round) => round.courseId === courseId).length;
     const message = affectedRounds
-      ? `Delete this course and ${affectedRounds} linked ${affectedRounds === 1 ? "round" : "rounds"} from your Supabase account?`
-      : "Delete this course from your Supabase account?";
+      ? `Delete this course and ${affectedRounds} linked ${affectedRounds === 1 ? "round" : "rounds"} from your account?`
+      : "Delete this course from your account?";
     if (!confirm(message)) return;
     const course = courseById(courseId);
     if (!hasRemoteSession() || !course?.backendCourseId) {
@@ -2235,7 +2344,7 @@ document.addEventListener("click", async (event) => {
     if (error || !data) {
       courseButton.disabled = false;
       setSyncStatus("Delete failed");
-      alert(error?.message || "Supabase did not delete that course.");
+      alert(error?.message || "That course could not be deleted.");
       return;
     }
     await loadRemoteData();

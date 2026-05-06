@@ -94,7 +94,7 @@
           </div>
           <div class="topbar-meta" aria-label="App status">
             <span id="todayLabel"></span>
-            <span id="syncStatus">Supabase sync</span>
+            <span id="syncStatus">Sync ready</span>
           </div>
           <button class="secondary-action logout-action" type="button" data-logout>Logout</button>
           <button class="primary-action" type="button" data-open-round>
@@ -297,18 +297,10 @@
           <div class="panel analytics-panel">
             <div id="analyticsLocked" class="analytics-locked" aria-live="polite"></div>
             <div id="analyticsContent" class="analytics-content">
-              <div class="analytics-filters">
-              <label>
-                Course
-                <select id="analyticsCourseSelect"></select>
-              </label>
-              <label>
-                Tee
-                <select id="analyticsTeeSelect"></select>
-              </label>
-              </div>
+              <div id="analyticsNav" class="analytics-nav"></div>
               <div id="analyticsSummary" class="metric-grid analytics-summary"></div>
-              <div class="hole-table-wrap">
+              <div id="analyticsDrillList" class="analytics-drill-list"></div>
+              <div id="analyticsHoleWrap" class="hole-table-wrap">
                 <table class="hole-table analytics-table">
                   <thead>
                     <tr>
@@ -444,7 +436,7 @@
             <h2>Update ParTrack profile</h2>
           </div>
         </div>
-        <p class="panel-note">Your display name is stored with your Supabase account.</p>
+        <p class="panel-note">Your display name is stored with your account.</p>
         <div class="form-grid">
           <label>
             Your name
