@@ -2188,16 +2188,29 @@ document.addEventListener("click", async (event) => {
   }
   if (roundButton) {
     if (!confirm("Delete this round from your Supabase account?")) return;
-    if (hasRemoteSession()) {
-      const { error } = await supabase.from("rounds").delete().eq("id", roundButton.dataset.deleteRound);
-      if (error) {
-        setSyncStatus("Delete failed");
-        alert(error.message);
-        return;
-      }
+    if (!hasRemoteSession()) {
+      alert("Open the hosted app and sign in to delete synced rounds.");
+      return;
     }
-    state.rounds = state.rounds.filter((round) => round.id !== roundButton.dataset.deleteRound);
+    roundButton.disabled = true;
+    setSyncStatus("Deleting round...");
+    const { data, error } = await supabase
+      .from("rounds")
+      .delete()
+      .eq("id", roundButton.dataset.deleteRound)
+      .eq("user_id", remoteUserId())
+      .select("id")
+      .maybeSingle();
+    if (error || !data) {
+      roundButton.disabled = false;
+      setSyncStatus("Delete failed");
+      alert(error?.message || "Supabase did not delete that round. It may already be gone or may not belong to this account.");
+      return;
+    }
+    await loadRemoteData();
+    setSyncStatus("Synced");
     render();
+    return;
   }
   if (courseButton) {
     const courseId = courseButton.dataset.deleteCourse;
@@ -2207,17 +2220,28 @@ document.addEventListener("click", async (event) => {
       : "Delete this course from your Supabase account?";
     if (!confirm(message)) return;
     const course = courseById(courseId);
-    if (hasRemoteSession() && course?.backendCourseId) {
-      const { error } = await supabase.from("courses").delete().eq("id", course.backendCourseId);
-      if (error) {
-        setSyncStatus("Delete failed");
-        alert(error.message);
-        return;
-      }
+    if (!hasRemoteSession() || !course?.backendCourseId) {
+      alert("Open the hosted app and sign in to delete synced courses.");
+      return;
     }
-    state.courses = state.courses.filter((course) => course.id !== courseId);
-    state.rounds = state.rounds.filter((round) => round.courseId !== courseId);
+    courseButton.disabled = true;
+    setSyncStatus("Deleting course...");
+    const { data, error } = await supabase
+      .from("courses")
+      .delete()
+      .eq("id", course.backendCourseId)
+      .select("id")
+      .maybeSingle();
+    if (error || !data) {
+      courseButton.disabled = false;
+      setSyncStatus("Delete failed");
+      alert(error?.message || "Supabase did not delete that course.");
+      return;
+    }
+    await loadRemoteData();
+    setSyncStatus("Synced");
     render();
+    return;
   }
 });
 
@@ -2234,17 +2258,6 @@ document.querySelectorAll("[data-course-mode]").forEach((button) => {
     renderCourses();
     if (courseMode === "catalog") cloudCourseSearch?.focus();
   });
-});
-
-document.querySelector("[data-refresh-cloud]")?.addEventListener("click", async () => {
-  if (!hasRemoteSession()) return;
-  try {
-    await loadRemoteData();
-    render();
-  } catch (error) {
-    setSyncStatus("Refresh failed");
-    alert(error.message || "Could not refresh Supabase data.");
-  }
 });
 
 document.querySelector("[data-export]")?.addEventListener("click", () => {
