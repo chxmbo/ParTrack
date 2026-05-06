@@ -3,6 +3,7 @@ const supabaseUrl = SUPABASE_CONFIG.VITE_SUPABASE_URL || "";
 const supabaseAnonKey = SUPABASE_CONFIG.VITE_SUPABASE_ANON_KEY || "";
 const supabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 const localPreviewMode = window.location.protocol === "file:";
+const themeStorageKey = "partrack-theme";
 let supabase = null;
 
 function authRedirectUrl() {
@@ -90,6 +91,7 @@ const appShell = document.querySelector(".app-shell");
 const authForm = document.querySelector("#authForm");
 const authStatus = document.querySelector("#authStatus");
 const syncStatus = document.querySelector("#syncStatus");
+const themeSelect = document.querySelector("#themeSelect");
 const setupDialog = document.querySelector("#setupDialog");
 const setupForm = document.querySelector("#setupForm");
 const courseForm = document.querySelector("#courseForm");
@@ -125,6 +127,16 @@ function blankState() {
     courses: [],
     rounds: []
   };
+}
+
+function storedTheme() {
+  const value = localStorage.getItem(themeStorageKey);
+  return ["device", "light", "dark"].includes(value) ? value : "device";
+}
+
+function applyTheme(theme = storedTheme()) {
+  document.documentElement.dataset.theme = theme;
+  if (themeSelect) themeSelect.value = theme;
 }
 
 function setSyncStatus(message) {
@@ -1046,8 +1058,13 @@ function renderCourses() {
 
   if (!groups.length) {
     target.innerHTML = courseMode === "catalog"
-      ? `<div class="empty">Search the course catalog or add a missing course to make it available for rounds.</div>`
+      ? `<div class="empty">${remoteCourseSearchTerm ? "No catalog courses match that search." : "No catalog courses are available yet. Add a missing course to make it available for rounds."}</div>`
       : `<div class="empty">Courses you create or play will appear here. Open the course catalog to find a course and start a round.</div>`;
+    return;
+  }
+
+  if (courseMode === "catalog") {
+    target.innerHTML = renderCatalogCourseList(groups);
     return;
   }
 
@@ -1104,6 +1121,62 @@ function renderCourses() {
         </details>
       </article>
     `;
+    })
+    .join("");
+}
+
+function renderCatalogCourseList(groups) {
+  return groups
+    .map((group) => {
+      const firstCourse = group.courses[0];
+      const location = [firstCourse.city, firstCourse.state].filter(Boolean).join(", ");
+      const teeCount = group.courses.length;
+      return `
+        <article class="catalog-course-row">
+          <details class="catalog-course-details">
+            <summary class="catalog-course-summary">
+              <div>
+                <div class="catalog-course-title">
+                  <strong>${escapeHtml(group.name)}</strong>
+                  <span>${teeCount} ${teeCount === 1 ? "tee" : "tees"}</span>
+                </div>
+                <div class="course-meta">
+                  ${location ? `<span>${escapeHtml(location)}</span>` : ""}
+                  ${firstCourse.country ? `<span>${escapeHtml(firstCourse.country)}</span>` : ""}
+                </div>
+              </div>
+              <div class="tee-swatch-list" aria-label="Available tees">
+                ${group.courses.map((course) => `
+                  <span class="tee-swatch ${teeColorClass(course.tee)}" title="${escapeHtml(course.tee)}">${escapeHtml(teeShortLabel(course.tee))}</span>
+                `).join("")}
+              </div>
+              <span class="round-expand-cue" aria-hidden="true"></span>
+            </summary>
+            <div class="catalog-tee-list">
+              ${group.courses.map((course) => {
+                const yards = totalYards(course);
+                return `
+                  <div class="catalog-tee-row">
+                    <div>
+                      <div class="catalog-tee-title">
+                        <span class="tee-swatch ${teeColorClass(course.tee)}">${escapeHtml(teeShortLabel(course.tee))}</span>
+                        <strong>${escapeHtml(course.tee)}</strong>
+                        ${remoteCourseBadge(course)}
+                      </div>
+                      <div class="course-meta">
+                        <span>${Number(course.rating).toFixed(1)}/${course.slope}</span>
+                        <span>Par ${totalPar(course)}</span>
+                        ${yards ? `<span>${yards.toLocaleString()} yards</span>` : ""}
+                      </div>
+                    </div>
+                    <button class="primary-action" type="button" data-start-course-round="${course.id}">Start</button>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          </details>
+        </article>
+      `;
     })
     .join("");
 }
@@ -1781,6 +1854,12 @@ document.querySelectorAll("[data-logout]").forEach((button) => {
   button.addEventListener("click", signOut);
 });
 
+themeSelect?.addEventListener("change", () => {
+  const theme = themeSelect.value;
+  localStorage.setItem(themeStorageKey, theme);
+  applyTheme(theme);
+});
+
 links.forEach((link) => {
   link.addEventListener("click", (event) => {
     event.preventDefault();
@@ -2065,6 +2144,7 @@ if ("serviceWorker" in navigator) {
 }
 
 async function startApp() {
+  applyTheme();
   renderHoleEditor();
   document.querySelector("#todayLabel").textContent = todayLabel();
   await initializeAuth();
