@@ -11,10 +11,13 @@
     </linearGradient>
   </defs>
   <g transform="translate(0 0)">
-    <rect x="8" y="8" width="112" height="112" rx="30" fill="url(#bg)"/>
-    <path d="M59 50c0-4 4-6 7-4l25 14c4 2 4 7 0 9L66 83c-3 2-7 0-7-4V50Z" fill="url(#flag)"/>
-    <path d="M47 96c-5 0-8-3-8-8V39c0-5 3-8 8-8h29c20 0 35 15 35 34S96 98 76 98H66V78h10c8 0 15-6 15-13 0-8-7-14-15-14H63v37c0 5-3 8-8 8h-8Z" fill="#ffffff"/>
-    <path d="M63 51h13c8 0 15 6 15 14 0 7-7 13-15 13H66V65h10c1 0 2 0 2-1 0 0-1-1-2-1H63V51Z" fill="#0c271f" opacity=".52"/>
+    <rect width="128" height="128" rx="30" fill="url(#bg)"/>
+    <path d="M59 52c0-4 4-6 7-4l22 12c4 2 4 7 0 9L66 81c-3 2-7 0-7-4V52Z" fill="url(#flag)"/>
+    <path
+      fill="#ffffff"
+      fill-rule="evenodd"
+      d="M43 98c-4 0-7-3-7-7V37c0-4 3-7 7-7h32c22 0 36 13 36 32s-14 32-36 32H58V76h17c10 0 17-5 17-14s-7-14-17-14H58v43c0 4-3 7-7 7h-8Zm15-50v28h17c10 0 17-5 17-14s-7-14-17-14H58Z"
+    />
   </g>
   <text x="150" y="68" fill="#0c271f" font-family="Inter, Arial, sans-serif" font-size="56" font-weight="900">ParTrack</text>
   <text x="153" y="98" fill="#4f9659" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="600" letter-spacing="3">PERSONAL HANDICAP TRACKER</text>

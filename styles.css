@@ -29,19 +29,26 @@
 }
 
 html {
+  background-color: var(--bg);
   background: var(--bg);
   overflow-x: hidden;
+  min-height: 100%;
+  min-height: 100dvh;
+  touch-action: pan-y;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
   background:
     linear-gradient(135deg, rgba(47, 103, 136, 0.08), transparent 34%),
     linear-gradient(315deg, rgba(186, 86, 63, 0.07), transparent 32%),
     var(--bg);
   color: var(--ink);
   overflow-x: hidden;
+  overscroll-behavior-x: none;
 }
 
 button,
@@ -49,6 +56,7 @@ input,
 select,
 textarea {
   font: inherit;
+  font-size: max(16px, 1rem);
 }
 
 button {
@@ -88,6 +96,7 @@ button {
   height: 62px;
   border-radius: 18px;
   object-fit: contain;
+  background: transparent;
   box-shadow: 0 16px 34px rgba(12, 39, 31, 0.2);
 }
 
@@ -158,6 +167,7 @@ button {
   flex: 0 0 auto;
   border-radius: 12px;
   object-fit: contain;
+  background: transparent;
 }
 
 .nav {
@@ -265,7 +275,8 @@ main {
   width: 28px;
   height: 28px;
   border-radius: 7px;
-  box-shadow: var(--shadow-soft);
+  object-fit: contain;
+  background: transparent;
 }
 
 .topbar-meta {
@@ -1566,10 +1577,7 @@ dialog form {
   content: "";
   width: 64px;
   height: 64px;
-  border-radius: 18px;
-  background:
-    url("./assets/partrack-mark.png") center / 54px 54px no-repeat,
-    var(--green-dark);
+  background: url("./assets/icon.svg") center / contain no-repeat;
   box-shadow: 0 16px 36px rgba(13, 39, 31, 0.22);
 }
 
@@ -1853,19 +1861,21 @@ dialog form {
 
 @media (max-width: 760px) {
   .app-shell {
-    padding-bottom: 108px;
+    min-height: 100dvh;
+    padding-bottom: calc(82px + env(safe-area-inset-bottom));
   }
 
   .rail {
     position: fixed;
-    inset: auto 8px 8px 8px;
+    inset: auto 0 0 0;
     z-index: 20;
     min-height: 82px;
     max-height: none;
-    padding: 8px 10px calc(14px + env(safe-area-inset-bottom));
+    width: 100%;
+    padding: 8px max(10px, env(safe-area-inset-left)) calc(12px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-right));
     border-top: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 14px;
-    box-shadow: 0 -18px 42px rgba(19, 43, 37, 0.22);
+    border-radius: 0;
+    box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.12);
   }
 
   .brand {
@@ -2187,6 +2197,11 @@ dialog form {
     --coral-soft: #43231f;
     --shadow: 0 22px 56px rgba(0, 0, 0, 0.38);
     --shadow-soft: 0 14px 32px rgba(0, 0, 0, 0.28);
+  }
+
+  html {
+    background-color: #07110f;
+    background: #07110f;
   }
 
   body {
@@ -3108,19 +3123,63 @@ main {
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --field-bg: #07110f;
-    --field-surface: rgba(17, 26, 22, 0.96);
-    --field-panel: rgba(255, 255, 255, 0.045);
-    --field-ink: #edf5ee;
-    --field-muted: #9baca4;
-    --field-line: rgba(224, 235, 226, 0.14);
-    --field-green: #0b1713;
+    --bg: #10140f;
+    --paper: #17201a;
+    --paper-strong: #1d2922;
+    --ink: #f0f3e8;
+    --muted: #a9b4a8;
+    --line: rgba(226, 232, 213, 0.13);
+    --green: #8cbf7b;
+    --green-dark: #16271f;
+    --mint: #263725;
+    --blue: #8bb7c5;
+    --blue-soft: #203640;
+    --gold: #e2bc5f;
+    --gold-soft: #43391f;
+    --coral: #df927f;
+    --coral-soft: #442823;
+    --shadow: 0 24px 60px rgba(0, 0, 0, 0.34);
+    --shadow-soft: 0 14px 34px rgba(0, 0, 0, 0.24);
+    --field-bg: #10140f;
+    --field-surface: rgba(25, 35, 28, 0.88);
+    --field-panel: rgba(235, 239, 222, 0.055);
+    --field-ink: #f0f3e8;
+    --field-muted: #a8b5a9;
+    --field-line: rgba(226, 232, 213, 0.13);
+    --field-gold: #d8b452;
+    --field-green: #131d17;
+  }
+
+  html {
+    background-color: #10140f;
+    background: #10140f;
   }
 
   body {
     background:
-      radial-gradient(circle at 82% 0, rgba(223, 182, 84, 0.12), transparent 28%),
-      linear-gradient(180deg, #101410, #07110f);
+      radial-gradient(circle at 14% 0, rgba(216, 180, 82, 0.1), transparent 28%),
+      radial-gradient(circle at 92% 8%, rgba(140, 191, 123, 0.09), transparent 30%),
+      linear-gradient(180deg, #161a13 0%, #10140f 42%, #0e130f 100%);
+  }
+
+  .topbar {
+    background:
+      linear-gradient(180deg, rgba(16, 20, 15, 0.98) 0%, rgba(16, 20, 15, 0.92) 78%, rgba(16, 20, 15, 0) 100%);
+  }
+
+  .topbar-brand,
+  .topbar-title h1,
+  .section-heading h2,
+  .field-page-heading h2 {
+    color: var(--field-ink);
+  }
+
+  .eyebrow,
+  .panel-note,
+  .topbar-meta,
+  .round-meta,
+  .course-meta {
+    color: var(--field-muted);
   }
 
   .hero-copy strong,
@@ -3134,9 +3193,95 @@ main {
   .panel,
   .round-history-card,
   .course-library-card,
+  .cloud-course-panel,
+  .course-form,
   .auth-card {
     background:
-      radial-gradient(circle at 82% 4%, rgba(223, 182, 84, 0.075), transparent 30%),
+      radial-gradient(circle at 86% 0, rgba(216, 180, 82, 0.07), transparent 32%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.026), rgba(255, 255, 255, 0.01)),
       var(--field-surface);
+    border-color: var(--field-line);
+  }
+
+  .hero-progress,
+  .field-home-recent,
+  .settings-status-grid div,
+  .round-meta span,
+  .course-meta span,
+  .course-summary-stats span,
+  .round-quick-stats span,
+  .course-performance.empty,
+  .analytics-locked,
+  .score-chip,
+  .metric-chip,
+  .stroke-button,
+  .round-hole-button,
+  .topbar-meta,
+  input,
+  select,
+  textarea {
+    background: rgba(235, 239, 222, 0.055);
+    border-color: rgba(226, 232, 213, 0.12);
+    color: var(--field-ink);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: rgba(168, 181, 169, 0.74);
+  }
+
+  .primary-action,
+  .topbar .primary-action,
+  .field-page-heading .primary-action,
+  .field-settings-card .primary-action {
+    background: var(--field-gold);
+    color: #14140d;
+  }
+
+  .secondary-action,
+  .logout-action {
+    background: rgba(235, 239, 222, 0.1);
+    border-color: rgba(226, 232, 213, 0.12);
+    color: var(--field-ink);
+  }
+
+  .rail {
+    background:
+      radial-gradient(circle at 50% 0, rgba(216, 180, 82, 0.11), transparent 36%),
+      linear-gradient(180deg, #151f18, #0d130f);
+  }
+
+  .nav a {
+    color: rgba(240, 243, 232, 0.76);
+  }
+
+  .nav a.active,
+  .nav a:hover {
+    background: rgba(235, 239, 222, 0.095);
+    color: var(--field-ink);
+  }
+
+  .nav a.active svg,
+  .nav a.active .nav-birdie-icon {
+    color: var(--field-gold);
+  }
+
+  .chart-panel canvas,
+  dialog {
+    background: #151d17;
+    color: var(--field-ink);
+  }
+
+  .scorecard-head,
+  .hole-table thead,
+  .analytics-table thead {
+    background: rgba(216, 180, 82, 0.08);
+  }
+
+  .danger-action,
+  .delete-button {
+    border-color: rgba(223, 146, 127, 0.3);
+    background: rgba(68, 40, 35, 0.62);
+    color: #f1b3a5;
   }
 }

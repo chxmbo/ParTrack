@@ -111,6 +111,7 @@ let editingRoundId = null;
 let authMode = "login";
 let remoteSession = null;
 let remoteCourseSearchTerm = "";
+let preferredRoundCourseId = null;
 const roundHoleState = {
   activeHole: 1,
   holes: []
@@ -136,6 +137,10 @@ function hasRemoteSession() {
 
 function remoteUserId() {
   return remoteSession?.user?.id || null;
+}
+
+function isCurrentUserAdmin() {
+  return remoteSession?.user?.app_metadata?.role === "admin";
 }
 
 function normalizeRemoteCourse(course, tee) {
@@ -177,6 +182,14 @@ function remoteCourseBadge(course) {
   const status = remoteCourseStatus(course);
   const tone = status === "Approved" ? "approved" : status === "Unverified" ? "unverified" : "private";
   return `<span class="status-badge ${tone}">${status}</span>`;
+}
+
+function canPublishCourse(course) {
+  return Boolean(course?.backendCourseId && course.status === "pending" && course.createdBy === remoteUserId() && !course.isPublicUnverified);
+}
+
+function canVerifyCourse(course) {
+  return Boolean(course?.backendCourseId && course.status === "pending" && isCurrentUserAdmin());
 }
 
 function setSignedInUi(isSignedIn) {
@@ -281,7 +294,11 @@ async function saveRemoteCourse(formData, holes) {
     .insert({ ...mapTeeToRemote(formData, holes), course_id: course.id })
     .select()
     .single();
-  if (teeError) throw teeError;
+  if (teeError) {
+    await supabase.from("courses").delete().eq("id", course.id);
+    throw teeError;
+  }
+  if (!tee?.id) throw new Error("Course saved, but no tee set came back from Supabase.");
   return normalizeRemoteCourse(course, tee);
 }
 
@@ -1044,6 +1061,8 @@ function renderCourses() {
             ${course.backendCourseId && course.status !== "approved" ? `<div class="course-note">${course.isPublicUnverified ? "Community-submitted and not yet reviewed." : "Private draft, visible only to you until approved."}</div>` : ""}
             ${renderCourseCard(course)}
             <div class="card-actions">
+              ${canPublishCourse(course) ? `<button class="secondary-action" type="button" data-publish-course="${course.id}">Publish unverified</button>` : ""}
+              ${canVerifyCourse(course) ? `<button class="primary-action" type="button" data-verify-course="${course.id}">Verify course</button>` : ""}
               <button class="delete-button" type="button" data-delete-course="${course.id}">Delete tee</button>
             </div>
           </div>
@@ -1232,7 +1251,8 @@ function renderHoleEditor(preserveValues = true) {
 }
 
 function renderCourseSelect() {
-  const previousName = courseSelect.value;
+  const preferredCourse = preferredRoundCourseId ? courseById(preferredRoundCourseId) : null;
+  const previousName = preferredCourse?.name || courseSelect.value;
   const names = courseNames();
   courseSelect.innerHTML = names
     .map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`)
@@ -1243,12 +1263,14 @@ function renderCourseSelect() {
 }
 
 function renderTeeSelect() {
-  const previousTeeId = teeSelect.value;
+  const previousTeeId = preferredRoundCourseId || teeSelect.value;
   const tees = coursesByName(courseSelect.value);
   teeSelect.innerHTML = tees
     .map((course) => `<option value="${course.id}">${escapeHtml(course.tee)}</option>`)
     .join("");
   if (tees.some((course) => course.id === previousTeeId)) teeSelect.value = previousTeeId;
+  else if (tees[0]) teeSelect.value = tees[0].id;
+  preferredRoundCourseId = null;
 }
 
 function selectedRoundCourse() {
@@ -1559,13 +1581,14 @@ function setRoundDialogMode(round = null) {
   if (saveButton) saveButton.textContent = editingRoundId ? "Save changes" : "Save round";
 }
 
-function openRoundDialog(round = null) {
+function openRoundDialog(round = null, preferredCourseId = null) {
   if (!state.courses.length) {
     location.hash = "#courses";
     route();
     return;
   }
 
+  if (preferredCourseId) preferredRoundCourseId = preferredCourseId;
   roundForm.reset();
   setRoundDialogMode(round);
   roundForm.elements.date.value = round?.date || todayIso();
@@ -1831,13 +1854,16 @@ courseForm.addEventListener("submit", async (event) => {
   }
   try {
     const remoteCourse = await saveRemoteCourse(formData, holes);
-    state.courses.push(remoteCourse);
-    selectedCourseIdsByName[remoteCourse.name] = remoteCourse.id;
+    preferredRoundCourseId = remoteCourse.id;
+    await loadRemoteData();
+    const savedCourse = courseById(remoteCourse.id) || remoteCourse;
+    selectedCourseIdsByName[savedCourse.name] = savedCourse.id;
     courseForm.reset();
     renderHoleEditor();
     setCourseFormOpen(false);
     setSyncStatus("Synced");
     render();
+    openRoundDialog(null, savedCourse.id);
   } catch (error) {
     holeTotals.textContent = error.message || "Could not save course.";
     setSyncStatus("Course sync failed");
@@ -1848,6 +1874,8 @@ document.addEventListener("click", async (event) => {
   const editRoundButton = event.target.closest("[data-edit-round]");
   const roundButton = event.target.closest("[data-delete-round]");
   const courseButton = event.target.closest("[data-delete-course]");
+  const publishCourseButton = event.target.closest("[data-publish-course]");
+  const verifyCourseButton = event.target.closest("[data-verify-course]");
   const strokeButton = event.target.closest("[data-stroke]");
   const roundHoleButton = event.target.closest("[data-round-hole]");
   const prevHoleButton = event.target.closest("[data-prev-hole]");
@@ -1859,6 +1887,38 @@ document.addEventListener("click", async (event) => {
   if (editRoundButton) {
     const round = state.rounds.find((item) => item.id === editRoundButton.dataset.editRound);
     if (round) openRoundDialog(round);
+  }
+  if (publishCourseButton) {
+    const course = courseById(publishCourseButton.dataset.publishCourse);
+    if (!course?.backendCourseId) return;
+    const { error } = await supabase
+      .from("courses")
+      .update({ is_public_unverified: true })
+      .eq("id", course.backendCourseId);
+    if (error) {
+      setSyncStatus("Publish failed");
+      alert(error.message);
+      return;
+    }
+    await loadRemoteData();
+    setSyncStatus("Published as unverified");
+    render();
+  }
+  if (verifyCourseButton) {
+    const course = courseById(verifyCourseButton.dataset.verifyCourse);
+    if (!course?.backendCourseId) return;
+    const { error } = await supabase
+      .from("courses")
+      .update({ status: "approved", is_public_unverified: false })
+      .eq("id", course.backendCourseId);
+    if (error) {
+      setSyncStatus("Verification failed");
+      alert(error.message);
+      return;
+    }
+    await loadRemoteData();
+    setSyncStatus("Course verified");
+    render();
   }
   if (roundButton) {
     if (!confirm("Delete this round from your Supabase account?")) return;

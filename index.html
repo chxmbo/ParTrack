@@ -2,26 +2,26 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
     <meta name="theme-color" content="#132b25" />
     <meta name="theme-color" content="#132b25" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#132b25" media="(prefers-color-scheme: dark)" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="ParTrack" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="mobile-web-app-capable" content="yes" />
     <title>ParTrack</title>
     <link rel="manifest" href="./public/manifest.webmanifest" />
-    <link rel="icon" href="./assets/partrack-mark.png" type="image/png" />
-    <link rel="apple-touch-icon" sizes="192x192" href="./public/icons/icon-192.png" />
-    <link rel="stylesheet" href="./styles.css" />
-    <script src="./env-config.js"></script>
+    <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" sizes="192x192" href="./public/icons/icon-192-v27.png" />
+    <link rel="stylesheet" href="./styles.css?v=27" />
+    <script src="./env-config.js?v=27"></script>
   </head>
   <body>
     <section id="authScreen" class="auth-screen" hidden>
       <form id="authForm" class="auth-card" data-mode="login">
         <div class="auth-brand">
-          <img src="./assets/partrack-mark.png" alt="" />
+          <img src="./assets/icon.svg" alt="" />
           <div>
             <strong>ParTrack</strong>
             <span>Personal Handicap Tracker</span>
@@ -51,7 +51,7 @@
     <div class="app-shell" hidden>
       <aside class="rail">
         <a class="brand" href="#dashboard" aria-label="ParTrack dashboard">
-          <img src="./assets/partrack-mark.png" alt="" />
+          <img src="./assets/icon.svg" alt="" />
           <span>ParTrack</span>
         </a>
         <nav class="nav" aria-label="Primary">
@@ -86,7 +86,7 @@
         <header class="topbar">
           <div class="topbar-title">
             <a class="topbar-brand" href="#dashboard" aria-label="ParTrack dashboard">
-              <img src="./assets/partrack-mark.png" alt="" />
+              <img src="./assets/icon.svg" alt="" />
               <span>ParTrack</span>
             </a>
             <p class="eyebrow">Private handicap tracker</p>
@@ -436,6 +436,6 @@
       </form>
     </dialog>
 
-    <script type="module" src="./app.js"></script>
+    <script type="module" src="./app.js?v=27"></script>
   </body>
 </html>

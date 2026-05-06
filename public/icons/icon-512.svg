@@ -1,9 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
   <title id="title">ParTrack icon</title>
-  <rect width="512" height="512" rx="112" fill="#132b25"/>
-  <path d="M93 347c68-16 101-71 131-134 29-66 83-104 197-77-16 94-66 170-142 210-58 31-120 35-186 1Z" fill="#dff0df"/>
-  <circle cx="363" cy="154" r="43" fill="#f1d28b"/>
-  <path d="M248 104v270" stroke="#ffffff" stroke-width="29" stroke-linecap="round"/>
-  <path d="M265 107h123L265 179Z" fill="#b64d35"/>
-  <circle cx="248" cy="374" r="35" fill="#ffffff"/>
+  <defs>
+    <linearGradient id="bg" x1="16" y1="12" x2="112" y2="116" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#123a30"/>
+      <stop offset="1" stop-color="#071511"/>
+    </linearGradient>
+    <linearGradient id="flag" x1="58" y1="51" x2="89" y2="73" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8fd26f"/>
+      <stop offset="1" stop-color="#3f9c55"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="30" fill="url(#bg)"/>
+  <path d="M59 52c0-4 4-6 7-4l22 12c4 2 4 7 0 9L66 81c-3 2-7 0-7-4V52Z" fill="url(#flag)"/>
+  <path fill="#ffffff" fill-rule="evenodd" d="M43 98c-4 0-7-3-7-7V37c0-4 3-7 7-7h32c22 0 36 13 36 32s-14 32-36 32H58V76h17c10 0 17-5 17-14s-7-14-17-14H58v43c0 4-3 7-7 7h-8Zm15-50v28h17c10 0 17-5 17-14s-7-14-17-14H58Z"/>
 </svg>

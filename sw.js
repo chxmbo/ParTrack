@@ -1,4 +1,4 @@
-const CACHE_NAME = "partrack-supabase-v21";
+const CACHE_NAME = "partrack-supabase-v27";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -10,6 +10,8 @@ const APP_SHELL = [
   "./public/manifest.webmanifest",
   "./public/icons/icon-192.png",
   "./public/icons/icon-512.png",
+  "./public/icons/icon-192-v27.png",
+  "./public/icons/icon-512-v27.png",
   "./assets/icon.svg",
   "./assets/logo.svg"
 ];
