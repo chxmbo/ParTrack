@@ -207,7 +207,7 @@ function canVerifyCourse(course) {
 }
 
 function setSignedInUi(isSignedIn) {
-  if (localPreviewMode) {
+  if (localPreviewMode && !supabaseConfigured) {
     authScreen.hidden = true;
     appShell.hidden = false;
     setSyncStatus("Local preview");
@@ -1686,7 +1686,7 @@ function setRoundDialogMode(round = null) {
   const title = roundForm.querySelector(".dialog-header h2");
   const saveButton = roundForm.querySelector("button[type='submit']");
   if (title) title.textContent = editingRoundId ? "Edit round" : "Add round";
-  if (saveButton) saveButton.textContent = editingRoundId ? "Save changes" : "Save round";
+  if (saveButton) saveButton.textContent = editingRoundId ? "Save changes" : "Add round";
 }
 
 function openRoundDialog(round = null, preferredCourseId = null) {
@@ -1756,7 +1756,7 @@ async function signOut() {
 }
 
 async function initializeAuth() {
-  if (localPreviewMode) {
+  if (localPreviewMode && !supabaseConfigured) {
     state.profile = {
       name: "Local Preview",
       setupComplete: true
@@ -1922,8 +1922,12 @@ setupForm.addEventListener("submit", (event) => {
 roundForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!state.courses.length) return;
+  const saveButton = roundForm.querySelector("button[type='submit']");
+  const originalButtonText = saveButton?.textContent || "Add round";
   if (!hasRemoteSession()) {
-    document.querySelector("#roundTotalScore").textContent = "Sign in to save rounds.";
+    document.querySelector("#roundTotalScore").textContent = localPreviewMode
+      ? "Open the hosted app and sign in to save rounds to Supabase."
+      : "Sign in to save rounds.";
     return;
   }
   const formData = new FormData(roundForm);
@@ -1945,19 +1949,33 @@ roundForm.addEventListener("submit", async (event) => {
     holes
   };
   try {
+    if (saveButton) {
+      saveButton.disabled = true;
+      saveButton.textContent = "Saving...";
+    }
+    setSyncStatus("Saving round...");
     const saved = await saveRemoteRound(round, existingRound);
     round.id = saved.id;
     round.backendCourseId = saved.course_id;
     round.backendTeeId = saved.tee_id;
+    if (existingRound) state.rounds = state.rounds.map((item) => item.id === existingRound.id ? round : item);
+    else state.rounds.push(round);
+    await loadRemoteData();
     setSyncStatus("Synced");
   } catch (error) {
     document.querySelector("#roundTotalScore").textContent = error.message || "Could not save round.";
     setSyncStatus("Round sync failed");
+    if (saveButton) {
+      saveButton.disabled = false;
+      saveButton.textContent = originalButtonText;
+    }
     return;
   }
-  if (existingRound) state.rounds = state.rounds.map((item) => item.id === existingRound.id ? round : item);
-  else state.rounds.push(round);
   editingRoundId = null;
+  if (saveButton) {
+    saveButton.disabled = false;
+    saveButton.textContent = originalButtonText;
+  }
   roundDialog.close();
   render();
 });
