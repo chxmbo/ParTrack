@@ -14,8 +14,8 @@
     <link rel="manifest" href="./public/manifest.webmanifest" />
     <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" sizes="192x192" href="./public/icons/icon-192.png" />
-    <link rel="stylesheet" href="./styles.css?v=35" />
-    <script src="./env-config.js?v=35"></script>
+    <link rel="stylesheet" href="./styles.css?v=38" />
+    <script src="./env-config.js?v=38"></script>
   </head>
   <body>
     <section id="authScreen" class="auth-screen" hidden>
@@ -170,7 +170,6 @@
         <section id="rounds" class="view" aria-label="Rounds">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">Field Ledger · Rounds</p>
               <h2>Rounds</h2>
             </div>
             <button class="primary-action" type="button" data-open-round>Round</button>
@@ -181,7 +180,6 @@
         <section id="courses" class="view" aria-label="Courses">
           <div class="section-heading field-page-heading">
             <div>
-              <p class="eyebrow">Field Ledger · Courses</p>
               <h2 id="courseCountTitle">Courses</h2>
             </div>
             <div class="course-mode-tabs" role="tablist" aria-label="Course view">
@@ -205,7 +203,18 @@
           <div id="courseList" class="course-list"></div>
           <form id="courseForm" class="panel course-form is-collapsed">
             <div class="course-meta-grid">
-              <label>
+              <label class="course-form-mode-field">
+                Course setup
+                <select name="courseFormMode" id="courseFormMode">
+                  <option value="new">New course</option>
+                  <option value="existing">Add tee to existing course</option>
+                </select>
+              </label>
+              <label data-course-existing hidden>
+                Existing course
+                <select name="existingCourseId" id="existingCourseSelect"></select>
+              </label>
+              <label data-course-new>
                 Course
                 <input name="name" autocomplete="organization" required />
               </label>
@@ -217,15 +226,15 @@
                 Tee type
                 <input name="gender" placeholder="Men, women, mixed" />
               </label>
-              <label>
+              <label data-course-new>
                 City
                 <input name="city" autocomplete="address-level2" />
               </label>
-              <label>
+              <label data-course-new>
                 State
                 <input name="state" autocomplete="address-level1" />
               </label>
-              <label>
+              <label data-course-new>
                 Country
                 <input name="country" autocomplete="country-name" value="US" />
               </label>
@@ -237,9 +246,14 @@
                 Slope
                 <input name="slope" type="number" min="55" max="155" step="1" required />
               </label>
-              <label class="toggle-field">
+              <label class="toggle-field" data-course-new>
                 <input name="shareUnverified" type="checkbox" />
                 <span>Share as unverified course</span>
+              </label>
+              <label class="additional-tees-field" data-course-new>
+                Additional tees
+                <textarea name="additionalTees" rows="4" placeholder="One per line: Black, 72.9, 140, 6945&#10;Blue, 71.8, 132, 6600"></textarea>
+                <small>Use tee, rating, slope, yardage. The hole pars and handicap indexes below will be reused.</small>
               </label>
             </div>
 
@@ -277,7 +291,6 @@
         <section id="analytics" class="view" aria-label="Stats">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">Field Ledger · Stats</p>
               <h2>Stats</h2>
             </div>
           </div>
@@ -317,13 +330,6 @@
         </section>
 
         <section id="settings" class="view" aria-label="Settings">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">Field Ledger · Settings</p>
-              <h2>Settings</h2>
-            </div>
-            <button class="primary-action" type="button" data-go-home>Done</button>
-          </div>
           <div class="settings-grid field-settings-grid">
             <article class="panel field-settings-card">
               <div class="settings-row">
@@ -342,13 +348,14 @@
               </div>
               <div class="settings-row">
                 <span>Handicap basis</span>
-                <strong>Estimate</strong>
+                <label class="settings-control" aria-label="Handicap basis">
+                  <select id="handicapBasisSelect">
+                    <option value="estimate">WHS-style estimate</option>
+                    <option value="gross">Gross scoring</option>
+                    <option value="net">Net scoring</option>
+                  </select>
+                </label>
               </div>
-              <div class="settings-row">
-                <span>Course source</span>
-                <strong>Supabase</strong>
-              </div>
-              <button class="primary-action" type="button" data-refresh-cloud>Sync now</button>
             </article>
             <article class="panel settings-account-card">
               <p class="eyebrow">Account</p>
@@ -451,6 +458,6 @@
       </form>
     </dialog>
 
-    <script type="module" src="./app.js?v=35"></script>
+    <script type="module" src="./app.js?v=38"></script>
   </body>
 </html>

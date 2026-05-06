@@ -4,6 +4,7 @@ const supabaseAnonKey = SUPABASE_CONFIG.VITE_SUPABASE_ANON_KEY || "";
 const supabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 const localPreviewMode = window.location.protocol === "file:";
 const themeStorageKey = "partrack-theme";
+const handicapBasisStorageKey = "partrack-handicap-basis";
 let supabase = null;
 
 function authRedirectUrl() {
@@ -92,10 +93,13 @@ const authForm = document.querySelector("#authForm");
 const authStatus = document.querySelector("#authStatus");
 const syncStatus = document.querySelector("#syncStatus");
 const themeSelect = document.querySelector("#themeSelect");
+const handicapBasisSelect = document.querySelector("#handicapBasisSelect");
 const setupDialog = document.querySelector("#setupDialog");
 const setupForm = document.querySelector("#setupForm");
 const courseForm = document.querySelector("#courseForm");
 const courseFormToggle = document.querySelector("[data-toggle-course-form]");
+const courseFormMode = document.querySelector("#courseFormMode");
+const existingCourseSelect = document.querySelector("#existingCourseSelect");
 const courseSelect = document.querySelector("#courseSelect");
 const teeSelect = document.querySelector("#teeSelect");
 const analyticsCourseSelect = document.querySelector("#analyticsCourseSelect");
@@ -137,6 +141,15 @@ function storedTheme() {
 function applyTheme(theme = storedTheme()) {
   document.documentElement.dataset.theme = theme;
   if (themeSelect) themeSelect.value = theme;
+}
+
+function storedHandicapBasis() {
+  const value = localStorage.getItem(handicapBasisStorageKey);
+  return ["estimate", "gross", "net"].includes(value) ? value : "estimate";
+}
+
+function applyHandicapBasis(value = storedHandicapBasis()) {
+  if (handicapBasisSelect) handicapBasisSelect.value = value;
 }
 
 function setSyncStatus(message) {
@@ -290,34 +303,95 @@ function mapCourseToRemote(course, formData, holes) {
   };
 }
 
-function mapTeeToRemote(formData, holes) {
+function mapTeeToRemote(formData, holes, override = {}) {
   return {
-    name: String(formData.get("tee")).trim(),
-    gender: String(formData.get("gender") || "").trim() || null,
-    par: holes.reduce((sum, hole) => sum + hole.par, 0),
-    rating: numeric(formData, "rating"),
-    slope: numeric(formData, "slope"),
-    yardage: holes.map((hole) => Number(hole.yards)).filter(Number.isFinite).reduce((sum, yards) => sum + yards, 0),
-    holes
+    name: override.name ?? String(formData.get("tee")).trim(),
+    gender: override.gender ?? (String(formData.get("gender") || "").trim() || null),
+    par: override.par ?? holes.reduce((sum, hole) => sum + hole.par, 0),
+    rating: override.rating ?? numeric(formData, "rating"),
+    slope: override.slope ?? numeric(formData, "slope"),
+    yardage: override.yardage ?? holes.map((hole) => Number(hole.yards)).filter(Number.isFinite).reduce((sum, yards) => sum + yards, 0),
+    holes: override.holes ?? holes
   };
 }
 
+function scaleHoleYardages(holes, targetYardage) {
+  const total = holes.reduce((sum, hole) => sum + (Number(hole.yards) || 0), 0);
+  if (!Number.isFinite(targetYardage) || targetYardage <= 0 || total <= 0) return holes;
+  let running = 0;
+  return holes.map((hole, index) => {
+    if (index === holes.length - 1) return { ...hole, yards: Math.max(1, targetYardage - running) };
+    const yards = Math.max(1, Math.round((Number(hole.yards) || 0) * targetYardage / total));
+    running += yards;
+    return { ...hole, yards };
+  });
+}
+
+function parseAdditionalTees(formData, baseHoles) {
+  const text = String(formData.get("additionalTees") || "").trim();
+  if (!text) return [];
+  return text.split(/\n+/).map((line, index) => {
+    const [name, rating, slope, yardage] = line.split(",").map((part) => part.trim());
+    if (!name || !rating || !slope) throw new Error(`Additional tee line ${index + 1} needs tee, rating, and slope.`);
+    const parsedRating = Number(rating);
+    const parsedSlope = Number(slope);
+    const parsedYardage = yardage ? Number(yardage.replace(/,/g, "")) : null;
+    if (!Number.isFinite(parsedRating) || !Number.isFinite(parsedSlope)) {
+      throw new Error(`Additional tee line ${index + 1} has an invalid rating or slope.`);
+    }
+    const holes = parsedYardage ? scaleHoleYardages(baseHoles, parsedYardage) : baseHoles;
+    return { name, rating: parsedRating, slope: parsedSlope, yardage: parsedYardage, holes };
+  });
+}
+
 async function saveRemoteCourse(formData, holes) {
-  const { data: course, error: courseError } = await supabase
-    .from("courses")
-    .insert(mapCourseToRemote(null, formData, holes))
-    .select()
-    .single();
-  if (courseError) throw courseError;
-  const { data: tee, error: teeError } = await supabase
+  const existingCourseId = String(formData.get("existingCourseId") || "");
+  const selectedExisting = existingCourseId ? courseById(existingCourseId) : null;
+  let course = null;
+  if (formData.get("courseFormMode") === "existing") {
+    if (!selectedExisting?.backendCourseId) throw new Error("Choose an existing Supabase course.");
+    course = {
+      id: selectedExisting.backendCourseId,
+      name: selectedExisting.name,
+      city: selectedExisting.city || "",
+      state: selectedExisting.state || "",
+      country: selectedExisting.country || "US",
+      status: selectedExisting.status || "pending",
+      is_public_unverified: Boolean(selectedExisting.isPublicUnverified),
+      created_by: selectedExisting.createdBy || null
+    };
+  } else {
+    const { data, error: courseError } = await supabase
+      .from("courses")
+      .insert(mapCourseToRemote(null, formData, holes))
+      .select()
+      .single();
+    if (courseError) throw courseError;
+    course = data;
+  }
+  const additionalTees = formData.get("courseFormMode") === "existing" ? [] : parseAdditionalTees(formData, holes);
+  const teePayloads = [
+    { ...mapTeeToRemote(formData, holes), course_id: course.id },
+    ...additionalTees.map((tee) => ({
+      ...mapTeeToRemote(formData, tee.holes, {
+        name: tee.name,
+        rating: tee.rating,
+        slope: tee.slope,
+        yardage: tee.yardage,
+        holes: tee.holes
+      }),
+      course_id: course.id
+    }))
+  ];
+  const { data: tees, error: teeError } = await supabase
     .from("tees")
-    .insert({ ...mapTeeToRemote(formData, holes), course_id: course.id })
-    .select()
-    .single();
+    .insert(teePayloads)
+    .select();
   if (teeError) {
-    await supabase.from("courses").delete().eq("id", course.id);
+    if (formData.get("courseFormMode") !== "existing") await supabase.from("courses").delete().eq("id", course.id);
     throw teeError;
   }
+  const tee = Array.isArray(tees) ? tees[0] : null;
   if (!tee?.id) throw new Error("Course saved, but no tee set came back from Supabase.");
   return normalizeRemoteCourse(course, tee);
 }
@@ -1656,12 +1730,53 @@ function updateHoleTotals() {
   holeTotals.textContent = `Par ${par || "--"} · ${filledYards ? `${yards.toLocaleString()} yards` : "yardage optional"} · ${indexStatus}`;
 }
 
+function remoteCourseOptions() {
+  const byBackendId = new Map();
+  for (const course of state.courses) {
+    if (!course.backendCourseId || byBackendId.has(course.backendCourseId)) continue;
+    byBackendId.set(course.backendCourseId, course);
+  }
+  return [...byBackendId.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function renderExistingCourseSelect() {
+  if (!existingCourseSelect) return;
+  const selectedValue = existingCourseSelect.value;
+  const courses = remoteCourseOptions();
+  existingCourseSelect.innerHTML = courses
+    .map((course) => `<option value="${course.id}">${escapeHtml([course.name, course.city, course.state].filter(Boolean).join(" · "))}</option>`)
+    .join("");
+  if (courses.some((course) => course.id === selectedValue)) existingCourseSelect.value = selectedValue;
+}
+
+function updateCourseFormMode() {
+  if (!courseForm || !courseFormMode) return;
+  const mode = courseFormMode.value || "new";
+  const isExisting = mode === "existing";
+  courseForm.dataset.mode = mode;
+  courseForm.querySelectorAll("[data-course-new]").forEach((element) => {
+    element.hidden = isExisting;
+    element.querySelectorAll("input, select, textarea").forEach((field) => {
+      field.disabled = isExisting;
+    });
+  });
+  courseForm.querySelectorAll("[data-course-existing]").forEach((element) => {
+    element.hidden = !isExisting;
+    element.querySelectorAll("input, select, textarea").forEach((field) => {
+      field.disabled = !isExisting;
+    });
+  });
+  if (isExisting) renderExistingCourseSelect();
+}
+
 function setCourseFormOpen(isOpen) {
   courseForm.classList.toggle("is-collapsed", !isOpen);
   courseFormToggle.innerHTML = isOpen
     ? `<span aria-hidden="true">−</span> Hide form`
     : `<span aria-hidden="true">+</span> Add course`;
   if (isOpen) {
+    renderExistingCourseSelect();
+    updateCourseFormMode();
     courseForm.querySelector("input[name='name']")?.focus();
   }
 }
@@ -1806,8 +1921,6 @@ document.querySelectorAll("[data-open-round]").forEach((button) => {
   button.addEventListener("click", () => openRoundDialog());
 });
 
-document.querySelector("[data-go-home]")?.addEventListener("click", () => navigateToView("dashboard"));
-
 authForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!supabase) {
@@ -1860,6 +1973,11 @@ themeSelect?.addEventListener("change", () => {
   applyTheme(theme);
 });
 
+handicapBasisSelect?.addEventListener("change", () => {
+  localStorage.setItem(handicapBasisStorageKey, handicapBasisSelect.value);
+  applyHandicapBasis(handicapBasisSelect.value);
+});
+
 links.forEach((link) => {
   link.addEventListener("click", (event) => {
     event.preventDefault();
@@ -1896,6 +2014,7 @@ cloudCourseSearch?.addEventListener("input", () => {
 courseForm.addEventListener("input", (event) => {
   if (event.target.closest(".hole-table")) updateHoleTotals();
 });
+courseFormMode?.addEventListener("change", updateCourseFormMode);
 document.querySelector("[data-reset-holes]")?.addEventListener("click", () => renderHoleEditor(false));
 courseFormToggle.addEventListener("click", () => {
   const shouldOpen = courseForm.classList.contains("is-collapsed");
@@ -1904,6 +2023,7 @@ courseFormToggle.addEventListener("click", () => {
 document.querySelector("[data-cancel-course-form]")?.addEventListener("click", () => {
   courseForm.reset();
   renderHoleEditor(false);
+  updateCourseFormMode();
   setCourseFormOpen(false);
 });
 
@@ -2001,6 +2121,7 @@ courseForm.addEventListener("submit", async (event) => {
     selectedCourseIdsByName[savedCourse.name] = savedCourse.id;
     courseForm.reset();
     renderHoleEditor();
+    updateCourseFormMode();
     setCourseFormOpen(false);
     setSyncStatus("Synced");
     render();
@@ -2163,6 +2284,7 @@ if ("serviceWorker" in navigator) {
 
 async function startApp() {
   applyTheme();
+  applyHandicapBasis();
   renderHoleEditor();
   document.querySelector("#todayLabel").textContent = todayLabel();
   await initializeAuth();
