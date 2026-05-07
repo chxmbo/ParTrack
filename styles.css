@@ -675,6 +675,26 @@ h3 {
   overflow: visible;
 }
 
+.stat-graph-shell .graph-panel {
+  fill: rgba(9, 31, 24, 0.9);
+  stroke: rgba(193, 214, 187, 0.12);
+  stroke-width: 1.2;
+}
+
+.stat-graph-shell .graph-grid {
+  fill: none;
+  stroke: rgba(213, 229, 208, 0.11);
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+.stat-graph-shell .graph-bar {
+  fill: none;
+  stroke: rgba(99, 196, 122, 0.18);
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
 .stat-graph-empty {
   display: grid;
   justify-items: start;
@@ -683,31 +703,35 @@ h3 {
 
 .stat-graph-shell .graph-base {
   fill: none;
-  stroke: rgba(220, 237, 216, 0.38);
+  stroke: rgba(227, 241, 224, 0.58);
   stroke-linecap: round;
-  stroke-width: 7;
+  stroke-width: 3.5;
 }
 
 .stat-graph-shell .graph-line {
   fill: none;
-  stroke: #58b460;
+  stroke: #7adf88;
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 4.5;
+  filter: drop-shadow(0 0 8px rgba(122, 223, 136, 0.28));
 }
 
 .stat-graph-shell .graph-node {
-  fill: rgba(255, 255, 255, 0.84);
+  fill: rgba(233, 243, 229, 0.88);
 }
 
 .stat-graph-shell .graph-node-strong {
   fill: #ffffff;
-  stroke: #58b460;
-  stroke-width: 2;
+  stroke: #7adf88;
+  stroke-width: 2.4;
 }
 
 .stat-graph-shell .graph-accent {
-  fill: #f1d28b;
+  fill: #e5c15f;
+  stroke: rgba(255, 248, 228, 0.8);
+  stroke-width: 1.6;
+  filter: drop-shadow(0 0 10px rgba(229, 193, 95, 0.34));
 }
 
 .content-grid,

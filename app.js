@@ -759,7 +759,8 @@ function renderHandicapGraphCard(summary) {
     target.innerHTML = `
       <div class="stat-graph-empty">
         <svg viewBox="0 0 140 84" aria-hidden="true">
-          <path d="M18 64h90" class="graph-base"/>
+          <rect x="8" y="12" width="116" height="54" rx="16" class="graph-panel"/>
+          <path d="M22 58h88" class="graph-base"/>
           <path d="M22 58l20-12 18 8 26-24" class="graph-line"/>
           <circle cx="22" cy="58" r="4" class="graph-node"/>
           <circle cx="42" cy="46" r="4" class="graph-node"/>
@@ -783,6 +784,7 @@ function renderHandicapGraphCard(summary) {
   const usableWidth = width - padX * 2;
   const usableHeight = height - padY * 2;
   const range = Math.max(1, max - min);
+  const gridLines = [0.18, 0.5, 0.82].map((ratio) => padY + usableHeight * ratio);
   const points = chronological.map((round, index) => {
     const x = padX + (chronological.length === 1 ? usableWidth / 2 : (usableWidth * index) / (chronological.length - 1));
     const y = padY + ((max - round.differential) / range) * usableHeight;
@@ -795,7 +797,10 @@ function renderHandicapGraphCard(summary) {
       <small>${summary.usedRounds.length ? `${summary.usedRounds.length} counting` : "No counting scores yet"}</small>
     </div>
     <svg viewBox="0 0 ${width} ${height}" aria-hidden="true">
-      <path d="M12 ${height - 16}h${width - 32}" class="graph-base"/>
+      <rect x="8" y="8" width="${width - 16}" height="${height - 20}" rx="16" class="graph-panel"/>
+      ${gridLines.map((y) => `<path d="M16 ${y.toFixed(1)}h${width - 32}" class="graph-grid"/>`).join("")}
+      ${points.map((point) => `<path d="M${point.x.toFixed(1)} ${height - 12}V${point.y.toFixed(1)}" class="graph-bar"/>`).join("")}
+      <path d="M16 ${height - 12}h${width - 32}" class="graph-base"/>
       <path d="${path}" class="graph-line"/>
       ${points.map((point, index) => {
         const isIncluded = includedIds.has(point.round.id);
