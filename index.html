@@ -130,10 +130,9 @@
               <strong id="roundCount">0</strong>
               <small id="recentWindow">0 in current window</small>
             </article>
-            <article class="stat-card" data-tone="gold">
-              <span>Best differential</span>
-              <strong id="bestScore">--</strong>
-              <small id="bestScoreLabel">No rounds yet</small>
+            <article class="stat-card stat-graph-card" data-tone="gold">
+              <span>Handicap graph</span>
+              <div id="bestScoreGraph" class="stat-graph-shell" aria-label="Handicap window graph"></div>
             </article>
             <article class="stat-card" data-tone="coral">
               <span>Average score</span>
@@ -439,6 +438,6 @@
       </form>
     </dialog>
 
-    <script type="module" src="./app.js?v=41"></script>
+    <script type="module" src="./app.js?v=42"></script>
   </body>
 </html>

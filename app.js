@@ -683,26 +683,15 @@ function renderDashboard() {
   const record = summary.record;
   const handicapChanges = handicapChangesByRound(record);
   const latestRound = record[0];
-  const bestScoreRound = [...record].sort((a, b) => a.score - b.score || a.toPar - b.toPar)[0];
   const scores = record.map((round) => Number(round.score));
   const toPar = record.map((round) => Number(round.toPar)).filter(Number.isFinite);
   const latestChange = latestRound ? handicapChanges[latestRound.id] : null;
-  const bestScoreIndex = bestScoreRound ? handicapChanges[bestScoreRound.id]?.after : null;
-  const bestScorePlayingHandicap = bestScoreRound && Number.isFinite(bestScoreIndex)
-    ? playingHandicap(bestScoreRound.course, bestScoreIndex)
-    : null;
-  const bestNetToPar = bestScoreRound && Number.isFinite(bestScorePlayingHandicap)
-    ? bestScoreRound.score - bestScorePlayingHandicap - totalPar(bestScoreRound.course)
-    : null;
 
   document.querySelector("#handicapIndex").textContent = summary.index === null ? "--" : summary.index.toFixed(1);
   document.querySelector("#handicapStatus").textContent = indexStatus(summary);
   document.querySelector("#roundCount").textContent = record.length;
   document.querySelector("#recentWindow").textContent = `${summary.recent.length} in current window`;
-  document.querySelector("#bestScore").textContent = summary.usedRounds[0] ? summary.usedRounds[0].differential.toFixed(1) : "--";
-  document.querySelector("#bestScoreLabel").textContent = summary.usedRounds[0]
-    ? `${escapeHtml(summary.usedRounds[0].course.name)} · ${formatDate(summary.usedRounds[0].date)}`
-    : "No counting scores yet";
+  renderHandicapGraphCard(summary);
   document.querySelector("#averageScore").textContent = scores.length ? round1(scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : "--";
   document.querySelector("#averagePutts").textContent = toPar.length ? `${formatToPar(round1(toPar.reduce((a, b) => a + b, 0) / toPar.length))} avg to par` : "No completed rounds";
 
@@ -760,6 +749,64 @@ function latestHandicapChangeLabel(change) {
   if (!change || !Number.isFinite(change.delta)) return "--";
   if (change.delta === 0) return "E";
   return `${change.delta > 0 ? "+" : ""}${change.delta.toFixed(1)}`;
+}
+
+function renderHandicapGraphCard(summary) {
+  const target = document.querySelector("#bestScoreGraph");
+  if (!target) return;
+  const chronological = [...summary.recent].reverse();
+  if (!chronological.length) {
+    target.innerHTML = `
+      <div class="stat-graph-empty">
+        <svg viewBox="0 0 140 84" aria-hidden="true">
+          <path d="M18 64h90" class="graph-base"/>
+          <path d="M22 58l20-12 18 8 26-24" class="graph-line"/>
+          <circle cx="22" cy="58" r="4" class="graph-node"/>
+          <circle cx="42" cy="46" r="4" class="graph-node"/>
+          <circle cx="60" cy="54" r="4" class="graph-node"/>
+          <circle cx="86" cy="30" r="5" class="graph-accent"/>
+        </svg>
+        <small>Add rounds to draw your index shape.</small>
+      </div>
+    `;
+    return;
+  }
+
+  const includedIds = new Set(summary.usedRounds.map((round) => round.id));
+  const values = chronological.map((round) => round.differential);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const width = 168;
+  const height = 84;
+  const padX = 14;
+  const padY = 12;
+  const usableWidth = width - padX * 2;
+  const usableHeight = height - padY * 2;
+  const range = Math.max(1, max - min);
+  const points = chronological.map((round, index) => {
+    const x = padX + (chronological.length === 1 ? usableWidth / 2 : (usableWidth * index) / (chronological.length - 1));
+    const y = padY + ((max - round.differential) / range) * usableHeight;
+    return { x, y, round };
+  });
+  const path = points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
+  target.innerHTML = `
+    <div class="stat-graph-head">
+      <strong>${summary.index === null ? "--" : summary.index.toFixed(1)}</strong>
+      <small>${summary.usedRounds.length ? `${summary.usedRounds.length} counting` : "No counting scores yet"}</small>
+    </div>
+    <svg viewBox="0 0 ${width} ${height}" aria-hidden="true">
+      <path d="M12 ${height - 16}h${width - 32}" class="graph-base"/>
+      <path d="${path}" class="graph-line"/>
+      ${points.map((point, index) => {
+        const isIncluded = includedIds.has(point.round.id);
+        const isLast = index === points.length - 1;
+        const nodeClass = isLast ? "graph-accent" : isIncluded ? "graph-node-strong" : "graph-node";
+        const radius = isLast ? 5 : isIncluded ? 4.4 : 3.8;
+        return `<circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="${radius}" class="${nodeClass}"/>`;
+      }).join("")}
+    </svg>
+    <small class="stat-graph-caption">Lowest ${summary.rule?.used || 0} of ${summary.recent.length} in view</small>
+  `;
 }
 
 function bestScoreDetail(round, netToPar, handicapIndex, playingHandicapValue) {

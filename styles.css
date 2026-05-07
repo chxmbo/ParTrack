@@ -640,6 +640,76 @@ h3 {
   color: var(--muted);
 }
 
+.stat-graph-card {
+  gap: 10px;
+}
+
+.stat-graph-shell {
+  display: grid;
+  gap: 10px;
+}
+
+.stat-graph-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.stat-graph-head strong {
+  font-size: 2.15rem;
+  line-height: 0.95;
+}
+
+.stat-graph-head small,
+.stat-graph-caption,
+.stat-graph-empty small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.stat-graph-shell svg {
+  display: block;
+  width: 100%;
+  height: 84px;
+  overflow: visible;
+}
+
+.stat-graph-empty {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+
+.stat-graph-shell .graph-base {
+  fill: none;
+  stroke: rgba(220, 237, 216, 0.38);
+  stroke-linecap: round;
+  stroke-width: 7;
+}
+
+.stat-graph-shell .graph-line {
+  fill: none;
+  stroke: #58b460;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4.5;
+}
+
+.stat-graph-shell .graph-node {
+  fill: rgba(255, 255, 255, 0.84);
+}
+
+.stat-graph-shell .graph-node-strong {
+  fill: #ffffff;
+  stroke: #58b460;
+  stroke-width: 2;
+}
+
+.stat-graph-shell .graph-accent {
+  fill: #f1d28b;
+}
+
 .content-grid,
 .settings-grid {
   display: grid;
