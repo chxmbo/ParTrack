@@ -869,7 +869,6 @@ function renderHandicapGraphCard(summary) {
         <text x="20" y="${padY - 4}" class="graph-axis-label">${graphMax.toFixed(1)}</text>
         <text x="20" y="${height - 4}" class="graph-axis-label">${graphMin.toFixed(1)}</text>
       </svg>
-      <div class="stat-graph-bubble" hidden></div>
     </div>
     <div class="stat-graph-meta">
       <small class="stat-graph-caption">${summary.usedRounds.length ? `${summary.usedRounds.length} counting scores in the current window` : "Hover or tap a point to inspect that round's handicap"}</small>
@@ -878,22 +877,14 @@ function renderHandicapGraphCard(summary) {
   `;
 
   const tooltip = target.querySelector(".stat-graph-tooltip");
-  const bubble = target.querySelector(".stat-graph-bubble");
   const pointNodes = [...target.querySelectorAll(".graph-point")];
   const activatePoint = (node) => {
-    if (!node || !tooltip || !bubble) return;
+    if (!node || !tooltip) return;
     pointNodes.forEach((point) => point.classList.toggle("is-active", point === node));
     const date = node.dataset.graphDate || "";
     const handicapValue = node.dataset.graphHandicap;
     const message = handicapValue ? `${date} · Handicap ${handicapValue}` : `${date} · Estimate pending`;
     tooltip.textContent = message;
-    bubble.hidden = false;
-    bubble.textContent = message;
-    bubble.style.setProperty("--graph-left", `${node.dataset.graphLeft || 50}%`);
-    bubble.style.setProperty("--graph-top", `${node.dataset.graphTop || 50}%`);
-    bubble.classList.toggle("is-edge-left", Number(node.dataset.graphLeft || 50) < 24);
-    bubble.classList.toggle("is-edge-right", Number(node.dataset.graphLeft || 50) > 76);
-    bubble.classList.toggle("is-below", Number(node.dataset.graphTop || 50) < 28);
   };
   pointNodes.forEach((node) => {
     node.addEventListener("mouseenter", () => activatePoint(node));
