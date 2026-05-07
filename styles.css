@@ -669,10 +669,8 @@ h3 {
 }
 
 .stat-graph-head {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  z-index: 3;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .stat-graph-head > div {
@@ -695,12 +693,12 @@ h3 {
 }
 
 .stat-graph-trend {
-  min-width: 82px;
-  padding: 8px 10px;
+  min-width: 74px;
+  padding: 7px 10px;
   border: 1px solid rgba(227, 241, 224, 0.14);
-  border-radius: 16px;
-  background: rgba(9, 31, 24, 0.72);
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.2);
+  border-radius: 999px;
+  background: rgba(9, 31, 24, 0.58);
+  box-shadow: none;
   text-align: center;
 }
 
