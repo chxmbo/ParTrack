@@ -112,6 +112,7 @@ const analyticsNav = document.querySelector("#analyticsNav");
 const analyticsDrillList = document.querySelector("#analyticsDrillList");
 const analyticsHoleWrap = document.querySelector("#analyticsHoleWrap");
 const cloudCourseSearch = document.querySelector("#cloudCourseSearch");
+const courseList = document.querySelector("#courseList");
 const holeRows = document.querySelector("#holeRows");
 const holeTotals = document.querySelector("#holeTotals");
 const strokeButtons = document.querySelector("#strokeButtons");
@@ -126,6 +127,7 @@ let statsView = "overview";
 let selectedStatsCourseName = "";
 let selectedStatsTeeId = "";
 let preferredRoundCourseId = null;
+const openCourseGroups = new Set();
 const roundHoleState = {
   activeHole: 1,
   holes: []
@@ -1166,7 +1168,7 @@ function renderCatalogCourseList(groups) {
       const teeCount = group.courses.length;
       return `
         <article class="catalog-course-row">
-          <details class="catalog-course-details">
+          <details class="catalog-course-details" data-course-group="${escapeHtml(group.name)}" ${openCourseGroups.has(group.name) ? "open" : ""}>
             <summary class="catalog-course-summary">
               <div>
                 <div class="catalog-course-title">
@@ -2104,6 +2106,15 @@ cloudCourseSearch?.addEventListener("input", () => {
   renderCourses();
 });
 
+courseList?.addEventListener("toggle", (event) => {
+  const details = event.target.closest(".catalog-course-details");
+  if (!details) return;
+  const groupName = details.dataset.courseGroup;
+  if (!groupName) return;
+  if (details.open) openCourseGroups.add(groupName);
+  else openCourseGroups.delete(groupName);
+}, true);
+
 courseForm.addEventListener("input", (event) => {
   if (event.target.closest(".hole-table")) updateHoleTotals();
 });
@@ -2247,11 +2258,16 @@ document.addEventListener("click", async (event) => {
     if (round) openRoundDialog(round);
   }
   if (startCourseRoundButton) {
+    event.preventDefault();
+    event.stopPropagation();
     openRoundDialog(null, startCourseRoundButton.dataset.startCourseRound);
   }
   if (publishCourseButton) {
+    event.preventDefault();
+    event.stopPropagation();
     const course = courseById(publishCourseButton.dataset.publishCourse);
     if (!course?.backendCourseId) return;
+    if (course?.name) openCourseGroups.add(course.name);
     publishCourseButton.disabled = true;
     setSyncStatus("Publishing...");
     const { error } = await supabase
@@ -2269,8 +2285,11 @@ document.addEventListener("click", async (event) => {
     render();
   }
   if (verifyCourseButton) {
+    event.preventDefault();
+    event.stopPropagation();
     const course = courseById(verifyCourseButton.dataset.verifyCourse);
     if (!course?.backendCourseId) return;
+    if (course?.name) openCourseGroups.add(course.name);
     verifyCourseButton.disabled = true;
     verifyCourseButton.textContent = "Verifying...";
     setSyncStatus("Verifying...");
