@@ -110,6 +110,7 @@ const analyticsLocked = document.querySelector("#analyticsLocked");
 const analyticsContent = document.querySelector("#analyticsContent");
 const analyticsNav = document.querySelector("#analyticsNav");
 const analyticsDrillList = document.querySelector("#analyticsDrillList");
+const analyticsParBreakdown = document.querySelector("#analyticsParBreakdown");
 const analyticsHoleWrap = document.querySelector("#analyticsHoleWrap");
 const cloudCourseSearch = document.querySelector("#cloudCourseSearch");
 const courseList = document.querySelector("#courseList");
@@ -1696,6 +1697,56 @@ function roundCollectionStats(rounds) {
   };
 }
 
+function parAverageStats(rounds) {
+  const buckets = { 3: [], 4: [], 5: [] };
+  rounds.forEach((round) => {
+    (round.holes || []).forEach((hole) => {
+      const par = Number(hole.par);
+      const strokes = Number(hole.strokes);
+      if (buckets[par] && Number.isFinite(strokes)) {
+        buckets[par].push(strokes);
+      }
+    });
+  });
+  return [3, 4, 5].map((par) => {
+    const values = buckets[par];
+    const average = values.length ? round1(values.reduce((sum, value) => sum + value, 0) / values.length) : null;
+    const toPar = Number.isFinite(average) ? round1(average - par) : null;
+    return { par, count: values.length, average, toPar };
+  });
+}
+
+function clearAnalyticsParBreakdown() {
+  if (!analyticsParBreakdown) return;
+  analyticsParBreakdown.hidden = true;
+  analyticsParBreakdown.innerHTML = "";
+}
+
+function renderAnalyticsParBreakdown(rounds) {
+  if (!analyticsParBreakdown) return;
+  const parStats = parAverageStats(rounds);
+  const hasScores = parStats.some((entry) => entry.count > 0);
+  if (!hasScores) {
+    clearAnalyticsParBreakdown();
+    return;
+  }
+  analyticsParBreakdown.hidden = false;
+  analyticsParBreakdown.innerHTML = `
+    <div class="par-average-header">
+      <span>Average shots per par</span>
+      <strong>Par scoring</strong>
+    </div>
+    <div class="metric-grid par-average-grid">
+      ${parStats.map((entry) => {
+        const detail = entry.count
+          ? `<small>${formatToPar(entry.toPar)} avg to par · ${entry.count} scores</small>`
+          : `<small>No scored holes yet</small>`;
+        return metric(`Par ${entry.par}`, Number.isFinite(entry.average) ? entry.average.toFixed(1) : "--", detail);
+      }).join("")}
+    </div>
+  `;
+}
+
 function renderAnalyticsOverview(record) {
   const stats = roundCollectionStats(record);
   const summary = handicapSummary();
@@ -1703,6 +1754,7 @@ function renderAnalyticsOverview(record) {
   const latestHandicapRound = handicapRecord[0];
   const latestChange = latestHandicapRound ? handicapChangesByRound(handicapRecord)[latestHandicapRound.id] : null;
   analyticsHoleWrap.hidden = true;
+  clearAnalyticsParBreakdown();
   analyticsNav.innerHTML = `<div class="analytics-breadcrumb"><span>Account stats</span></div>`;
   analyticsSummary.innerHTML = [
     metric("Rounds", stats.rounds),
@@ -1747,6 +1799,7 @@ function renderAnalyticsCourse(record, courseName) {
   const stats = roundCollectionStats(rounds);
   const tees = playedTeesByName(courseName);
   analyticsHoleWrap.hidden = true;
+  clearAnalyticsParBreakdown();
   analyticsNav.innerHTML = `
     <button class="secondary-action analytics-back" type="button" data-analytics-back="overview">Back to all stats</button>
     <div class="analytics-breadcrumb"><span>Course</span><strong>${escapeHtml(courseName)}</strong></div>
@@ -1810,6 +1863,7 @@ function renderAnalyticsTee(record, teeId) {
     metric("Worst", Number.isFinite(stats.worst) ? stats.worst : "--"),
     metric("Course hcp", Number.isFinite(courseHandicap) ? formatCourseHandicap(courseHandicap) : "--")
   ].join("");
+  renderAnalyticsParBreakdown(rounds);
   analyticsDrillList.innerHTML = "";
   holeAnalyticsRows.innerHTML = course.holes.map((hole) => {
     const scoresForHole = rounds

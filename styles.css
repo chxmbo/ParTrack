@@ -911,6 +911,44 @@ h3 {
   gap: 12px;
 }
 
+.par-average-section {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--field-line);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(47, 111, 79, 0.08), transparent 52%),
+    var(--field-surface);
+  box-shadow: var(--surface-glow);
+}
+
+.par-average-section[hidden] {
+  display: none;
+}
+
+.par-average-header {
+  display: grid;
+  gap: 2px;
+}
+
+.par-average-header span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.par-average-header strong {
+  color: var(--green-dark);
+  font-size: clamp(1.1rem, 3.4vw, 1.45rem);
+  line-height: 1.05;
+}
+
+.par-average-grid {
+  min-width: 0;
+}
+
 .analytics-drill-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto 28px;
