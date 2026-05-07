@@ -756,6 +756,11 @@ function renderHandicapGraphCard(summary) {
   if (!target) return;
   const chronological = [...summary.recent].reverse();
   const handicapChanges = handicapChangesByRound(summary.record || []);
+  const graphPoints = chronological.map((round) => ({
+    round,
+    change: handicapChanges[round.id],
+    value: handicapChanges[round.id]?.after
+  }));
   if (!chronological.length) {
     target.innerHTML = `
       <div class="stat-graph-empty">
@@ -775,7 +780,24 @@ function renderHandicapGraphCard(summary) {
   }
 
   const includedIds = new Set(summary.usedRounds.map((round) => round.id));
-  const values = chronological.map((round) => round.differential);
+  const values = graphPoints.map((point) => point.value).filter(Number.isFinite);
+  if (!values.length) {
+    target.innerHTML = `
+      <div class="stat-graph-empty">
+        <svg viewBox="0 0 140 84" aria-hidden="true">
+          <rect x="8" y="12" width="116" height="54" rx="16" class="graph-panel"/>
+          <path d="M22 58h88" class="graph-base"/>
+          <path d="M22 58l20-8 20-8 24-6" class="graph-line"/>
+          <circle cx="22" cy="58" r="4" class="graph-node"/>
+          <circle cx="42" cy="50" r="4" class="graph-node"/>
+          <circle cx="62" cy="42" r="4" class="graph-node"/>
+          <circle cx="86" cy="36" r="5" class="graph-accent"/>
+        </svg>
+        <small>Add 3 rounds to start plotting your handicap.</small>
+      </div>
+    `;
+    return;
+  }
   const min = Math.min(...values);
   const max = Math.max(...values);
   const width = 168;
@@ -786,47 +808,58 @@ function renderHandicapGraphCard(summary) {
   const usableHeight = height - padY * 2;
   const range = Math.max(1, max - min);
   const gridLines = [0.18, 0.5, 0.82].map((ratio) => padY + usableHeight * ratio);
-  const points = chronological.map((round, index) => {
-    const x = padX + (chronological.length === 1 ? usableWidth / 2 : (usableWidth * index) / (chronological.length - 1));
-    const y = padY + ((max - round.differential) / range) * usableHeight;
-    return { x, y, round };
+  const points = graphPoints.map((entry, index) => {
+    const x = padX + (graphPoints.length === 1 ? usableWidth / 2 : (usableWidth * index) / (graphPoints.length - 1));
+    const y = Number.isFinite(entry.value)
+      ? height - padY - ((entry.value - min) / range) * usableHeight
+      : height - 12;
+    return { x, y, ...entry };
   });
-  const path = points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
+  const drawablePoints = points.filter((point) => Number.isFinite(point.value));
+  const path = drawablePoints.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
   target.innerHTML = `
     <div class="stat-graph-head">
       <strong>${summary.index === null ? "--" : summary.index.toFixed(1)}</strong>
       <small>${summary.usedRounds.length ? `${summary.usedRounds.length} counting` : "No counting scores yet"}</small>
     </div>
-    <svg viewBox="0 0 ${width} ${height}" aria-hidden="true">
-      <rect x="8" y="8" width="${width - 16}" height="${height - 20}" rx="16" class="graph-panel"/>
-      ${gridLines.map((y) => `<path d="M16 ${y.toFixed(1)}h${width - 32}" class="graph-grid"/>`).join("")}
-      ${points.map((point) => `<path d="M${point.x.toFixed(1)} ${height - 12}V${point.y.toFixed(1)}" class="graph-bar"/>`).join("")}
-      <path d="M16 ${height - 12}h${width - 32}" class="graph-base"/>
-      <path d="${path}" class="graph-line"/>
-      ${points.map((point, index) => {
-        const isIncluded = includedIds.has(point.round.id);
-        const isLast = index === points.length - 1;
-        const nodeClass = isLast ? "graph-accent" : isIncluded ? "graph-node-strong" : "graph-node";
-        const radius = isLast ? 5 : isIncluded ? 4.4 : 3.8;
-        const change = handicapChanges[point.round.id];
-        const handicapValue = Number.isFinite(change?.after) ? change.after.toFixed(1) : "";
-        const label = Number.isFinite(change?.after)
-          ? `${formatDate(point.round.date)} handicap ${change.after.toFixed(1)}`
-          : `${formatDate(point.round.date)} estimate pending`;
-        return `
-          <g
-            class="graph-point${isLast ? " is-default" : ""}"
-            data-graph-date="${escapeHtml(formatDate(point.round.date))}"
-            data-graph-handicap="${escapeHtml(handicapValue)}"
-            tabindex="0"
-            role="button"
-            aria-label="${escapeHtml(label)}"
-          >
-            <circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="${radius}" class="${nodeClass}"/>
-          </g>
-        `;
-      }).join("")}
-    </svg>
+    <div class="stat-graph-plot">
+      <svg viewBox="0 0 ${width} ${height}" aria-hidden="true">
+        <rect x="8" y="8" width="${width - 16}" height="${height - 20}" rx="16" class="graph-panel"/>
+        ${gridLines.map((y) => `<path d="M16 ${y.toFixed(1)}h${width - 32}" class="graph-grid"/>`).join("")}
+        ${points
+          .filter((point) => Number.isFinite(point.value))
+          .map((point) => `<path d="M${point.x.toFixed(1)} ${height - 12}V${point.y.toFixed(1)}" class="graph-bar"/>`)
+          .join("")}
+        <path d="M16 ${height - 12}h${width - 32}" class="graph-base"/>
+        <path d="${path}" class="graph-line"/>
+        ${points.map((point, index) => {
+          const isIncluded = includedIds.has(point.round.id);
+          const isLast = index === points.length - 1;
+          const hasValue = Number.isFinite(point.value);
+          const nodeClass = !hasValue ? "graph-node-pending" : isLast ? "graph-accent" : isIncluded ? "graph-node-strong" : "graph-node";
+          const radius = !hasValue ? 3.2 : isLast ? 5 : isIncluded ? 4.4 : 3.8;
+          const handicapValue = hasValue ? point.value.toFixed(1) : "";
+          const label = hasValue
+            ? `${formatDate(point.round.date)} handicap ${point.value.toFixed(1)}`
+            : `${formatDate(point.round.date)} estimate pending`;
+          return `
+            <g
+              class="graph-point${isLast ? " is-default" : ""}"
+              data-graph-date="${escapeHtml(formatDate(point.round.date))}"
+              data-graph-handicap="${escapeHtml(handicapValue)}"
+              data-graph-left="${((point.x / width) * 100).toFixed(2)}"
+              data-graph-top="${((point.y / height) * 100).toFixed(2)}"
+              tabindex="0"
+              role="button"
+              aria-label="${escapeHtml(label)}"
+            >
+              <circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="${radius}" class="${nodeClass}"/>
+            </g>
+          `;
+        }).join("")}
+      </svg>
+      <div class="stat-graph-bubble" hidden></div>
+    </div>
     <div class="stat-graph-meta">
       <small class="stat-graph-caption">Lowest ${summary.rule?.used || 0} of ${summary.recent.length} in view</small>
       <small class="stat-graph-tooltip">Hover or tap a point</small>
@@ -834,13 +867,19 @@ function renderHandicapGraphCard(summary) {
   `;
 
   const tooltip = target.querySelector(".stat-graph-tooltip");
+  const bubble = target.querySelector(".stat-graph-bubble");
   const pointNodes = [...target.querySelectorAll(".graph-point")];
   const activatePoint = (node) => {
-    if (!node || !tooltip) return;
+    if (!node || !tooltip || !bubble) return;
     pointNodes.forEach((point) => point.classList.toggle("is-active", point === node));
     const date = node.dataset.graphDate || "";
     const handicapValue = node.dataset.graphHandicap;
-    tooltip.textContent = handicapValue ? `${date} · Handicap ${handicapValue}` : `${date} · Estimate pending`;
+    const message = handicapValue ? `${date} · Handicap ${handicapValue}` : `${date} · Estimate pending`;
+    tooltip.textContent = message;
+    bubble.hidden = false;
+    bubble.textContent = message;
+    bubble.style.setProperty("--graph-left", `${node.dataset.graphLeft || 50}%`);
+    bubble.style.setProperty("--graph-top", `${node.dataset.graphTop || 50}%`);
   };
   pointNodes.forEach((node) => {
     node.addEventListener("mouseenter", () => activatePoint(node));

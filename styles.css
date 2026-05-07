@@ -649,6 +649,10 @@ h3 {
   gap: 10px;
 }
 
+.stat-graph-plot {
+  position: relative;
+}
+
 .stat-graph-meta {
   display: flex;
   align-items: center;
@@ -686,6 +690,39 @@ h3 {
   width: 100%;
   height: 84px;
   overflow: visible;
+}
+
+.stat-graph-bubble {
+  position: absolute;
+  left: var(--graph-left, 50%);
+  top: var(--graph-top, 50%);
+  transform: translate(-50%, calc(-100% - 14px));
+  max-width: 180px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: rgba(12, 24, 21, 0.96);
+  border: 1px solid rgba(227, 241, 224, 0.14);
+  color: #f5f7f2;
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1.35;
+  text-align: center;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.stat-graph-bubble::after {
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 12px;
+  height: 12px;
+  background: inherit;
+  border-right: 1px solid rgba(227, 241, 224, 0.14);
+  border-bottom: 1px solid rgba(227, 241, 224, 0.14);
+  content: "";
+  transform: translateX(-50%) rotate(45deg);
 }
 
 .stat-graph-shell .graph-panel {
@@ -738,6 +775,10 @@ h3 {
   fill: #ffffff;
   stroke: #7adf88;
   stroke-width: 2.4;
+}
+
+.stat-graph-shell .graph-node-pending {
+  fill: rgba(233, 243, 229, 0.28);
 }
 
 .stat-graph-shell .graph-accent {
