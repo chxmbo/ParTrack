@@ -755,6 +755,7 @@ function renderHandicapGraphCard(summary) {
   const target = document.querySelector("#bestScoreGraph");
   if (!target) return;
   const chronological = [...summary.recent].reverse();
+  const handicapChanges = handicapChangesByRound(summary.record || []);
   if (!chronological.length) {
     target.innerHTML = `
       <div class="stat-graph-empty">
@@ -807,11 +808,46 @@ function renderHandicapGraphCard(summary) {
         const isLast = index === points.length - 1;
         const nodeClass = isLast ? "graph-accent" : isIncluded ? "graph-node-strong" : "graph-node";
         const radius = isLast ? 5 : isIncluded ? 4.4 : 3.8;
-        return `<circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="${radius}" class="${nodeClass}"/>`;
+        const change = handicapChanges[point.round.id];
+        const handicapValue = Number.isFinite(change?.after) ? change.after.toFixed(1) : "";
+        const label = Number.isFinite(change?.after)
+          ? `${formatDate(point.round.date)} handicap ${change.after.toFixed(1)}`
+          : `${formatDate(point.round.date)} estimate pending`;
+        return `
+          <g
+            class="graph-point${isLast ? " is-default" : ""}"
+            data-graph-date="${escapeHtml(formatDate(point.round.date))}"
+            data-graph-handicap="${escapeHtml(handicapValue)}"
+            tabindex="0"
+            role="button"
+            aria-label="${escapeHtml(label)}"
+          >
+            <circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="${radius}" class="${nodeClass}"/>
+          </g>
+        `;
       }).join("")}
     </svg>
-    <small class="stat-graph-caption">Lowest ${summary.rule?.used || 0} of ${summary.recent.length} in view</small>
+    <div class="stat-graph-meta">
+      <small class="stat-graph-caption">Lowest ${summary.rule?.used || 0} of ${summary.recent.length} in view</small>
+      <small class="stat-graph-tooltip">Hover or tap a point</small>
+    </div>
   `;
+
+  const tooltip = target.querySelector(".stat-graph-tooltip");
+  const pointNodes = [...target.querySelectorAll(".graph-point")];
+  const activatePoint = (node) => {
+    if (!node || !tooltip) return;
+    pointNodes.forEach((point) => point.classList.toggle("is-active", point === node));
+    const date = node.dataset.graphDate || "";
+    const handicapValue = node.dataset.graphHandicap;
+    tooltip.textContent = handicapValue ? `${date} · Handicap ${handicapValue}` : `${date} · Estimate pending`;
+  };
+  pointNodes.forEach((node) => {
+    node.addEventListener("mouseenter", () => activatePoint(node));
+    node.addEventListener("focus", () => activatePoint(node));
+    node.addEventListener("click", () => activatePoint(node));
+  });
+  activatePoint(target.querySelector(".graph-point.is-default") || pointNodes[pointNodes.length - 1]);
 }
 
 function bestScoreDetail(round, netToPar, handicapIndex, playingHandicapValue) {
