@@ -825,12 +825,6 @@ function renderHandicapGraphCard(summary) {
   const path = drawablePoints.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
   const trendLabel = trendDelta === null ? "--" : trendDelta === 0 ? "Even" : `${trendDelta > 0 ? "+" : ""}${trendDelta.toFixed(1)}`;
   target.innerHTML = `
-    <div class="stat-graph-head">
-      <div class="stat-graph-trend">
-        <small>Change</small>
-        <strong>${trendLabel}</strong>
-      </div>
-    </div>
     <div class="stat-graph-plot">
       <svg viewBox="0 0 ${width} ${height}" aria-hidden="true">
         <rect x="8" y="8" width="${width - 16}" height="${height - 20}" rx="18" class="graph-panel"/>
@@ -883,7 +877,7 @@ function renderHandicapGraphCard(summary) {
     pointNodes.forEach((point) => point.classList.toggle("is-active", point === node));
     const date = node.dataset.graphDate || "";
     const handicapValue = node.dataset.graphHandicap;
-    const message = handicapValue ? `${date} · Handicap ${handicapValue}` : `${date} · Estimate pending`;
+    const message = handicapValue ? `${date} · Handicap ${handicapValue} · Change ${trendLabel}` : `${date} · Estimate pending`;
     tooltip.textContent = message;
   };
   pointNodes.forEach((node) => {
