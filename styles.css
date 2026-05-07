@@ -827,6 +827,14 @@ h3 {
   font-weight: 800;
 }
 
+:root[data-theme="dark"] .analytics-drill-card strong {
+  color: var(--field-ink);
+}
+
+:root[data-theme="dark"] .analytics-drill-card small {
+  color: var(--field-muted);
+}
+
 .panel {
   padding: 22px;
 }
