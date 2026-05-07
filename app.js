@@ -1194,7 +1194,10 @@ function renderCatalogCourseList(groups) {
                         ${yards ? `<span>${yards.toLocaleString()} yards</span>` : ""}
                       </div>
                     </div>
-                    <button class="primary-action" type="button" data-start-course-round="${course.id}">Start</button>
+                    <div class="catalog-tee-actions">
+                      ${canVerifyCourse(course) ? `<button class="secondary-action" type="button" data-verify-course="${course.id}">Verify</button>` : ""}
+                      <button class="primary-action" type="button" data-start-course-round="${course.id}">Start</button>
+                    </div>
                   </div>
                 `;
               }).join("")}
@@ -2207,7 +2210,6 @@ courseForm.addEventListener("submit", async (event) => {
     setCourseFormOpen(false);
     setSyncStatus("Synced");
     render();
-    openRoundDialog(null, savedCourse.id);
   } catch (error) {
     holeTotals.textContent = error.message || "Could not save course.";
     setSyncStatus("Course sync failed");

@@ -3099,6 +3099,14 @@ main {
   font-size: 1rem;
 }
 
+.catalog-tee-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.catalog-tee-actions .secondary-action,
 .catalog-tee-row .primary-action {
   min-height: 44px;
   padding-inline: 18px;

@@ -128,9 +128,16 @@ RLS policy intent:
 - Everyone can read approved courses.
 - Creators can immediately use their own pending courses.
 - Pending courses can be visible to everyone when `is_public_unverified = true`.
-- Regular users can create only `pending` courses; admin approval can be added later.
+- Regular users can create only `pending` courses.
+- Admin users can verify pending courses from the app, which changes the course to `approved` and immediately makes it visible to everyone.
 
-Admin approval is not built into the UI yet. A future admin screen can update `courses.status` to `approved` or `rejected`.
+To make your login an admin, set that auth user's app metadata in Supabase to include:
+
+```json
+{ "role": "admin" }
+```
+
+This must be done from the Supabase dashboard or a trusted admin script, not from the public app.
 
 ## Crowdsourced courses
 
