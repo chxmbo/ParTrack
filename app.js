@@ -825,12 +825,8 @@ function renderHandicapGraphCard(summary) {
   const path = drawablePoints.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
   target.innerHTML = `
     <div class="stat-graph-head">
-      <div>
-        <small>Current handicap</small>
-        <strong>${summary.index === null ? "--" : summary.index.toFixed(1)}</strong>
-      </div>
       <div class="stat-graph-trend">
-        <small>Visible trend</small>
+        <small>Window change</small>
         <strong>${trendDelta === null ? "--" : trendDelta === 0 ? "Even" : `${trendDelta > 0 ? "+" : ""}${trendDelta.toFixed(1)}`}</strong>
       </div>
     </div>
