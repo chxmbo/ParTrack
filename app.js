@@ -113,10 +113,13 @@ const analyticsDrillList = document.querySelector("#analyticsDrillList");
 const analyticsHoleWrap = document.querySelector("#analyticsHoleWrap");
 const cloudCourseSearch = document.querySelector("#cloudCourseSearch");
 const courseList = document.querySelector("#courseList");
+const adminReviewPanel = document.querySelector("#adminReviewPanel");
+const adminReviewList = document.querySelector("#adminReviewList");
 const holeRows = document.querySelector("#holeRows");
 const holeTotals = document.querySelector("#holeTotals");
 const strokeButtons = document.querySelector("#strokeButtons");
 const roundHoleGrid = document.querySelector("#roundHoleGrid");
+const roundAutoSaveStatus = document.querySelector("#roundAutoSaveStatus");
 const selectedCourseIdsByName = {};
 let editingRoundId = null;
 let authMode = "login";
@@ -127,6 +130,7 @@ let statsView = "overview";
 let selectedStatsCourseName = "";
 let selectedStatsTeeId = "";
 let preferredRoundCourseId = null;
+let roundAutoSaveTimer = null;
 const openCourseGroups = new Set();
 const roundHoleState = {
   activeHole: 1,
@@ -163,7 +167,10 @@ function applyHandicapBasis(value = storedHandicapBasis()) {
 function setSyncStatus(message) {
   if (syncStatus) syncStatus.textContent = message;
   const settingsSyncLabel = document.querySelector("#settingsSyncLabel");
-  if (settingsSyncLabel) settingsSyncLabel.textContent = /failed|offline|sign in|required/i.test(message) ? "Not synced" : "Synced";
+  if (settingsSyncLabel) {
+    if (/saving|syncing|deleting|publishing|verifying/i.test(message)) settingsSyncLabel.textContent = "Saving...";
+    else settingsSyncLabel.textContent = /failed|offline|sign in|required/i.test(message) ? "Needs attention" : "Saved";
+  }
 }
 
 function hasRemoteSession() {
@@ -233,6 +240,49 @@ function markCourseApprovedLocal(backendCourseId) {
       ? { ...course, status: "approved", isPublicUnverified: false }
       : course
   ));
+}
+
+function adminPendingCourseGroups() {
+  if (!isCurrentUserAdmin()) return [];
+  return courseGroups()
+    .map((group) => ({
+      ...group,
+      courses: group.courses.filter((course) => course.backendCourseId && course.status === "pending")
+    }))
+    .filter((group) => group.courses.length);
+}
+
+function renderAdminReviewQueue() {
+  if (!adminReviewPanel || !adminReviewList) return;
+  const groups = adminPendingCourseGroups();
+  adminReviewPanel.hidden = !isCurrentUserAdmin();
+  if (!isCurrentUserAdmin()) {
+    adminReviewList.innerHTML = "";
+    return;
+  }
+  if (!groups.length) {
+    adminReviewList.innerHTML = `<div class="empty compact-empty">No courses waiting for review.</div>`;
+    return;
+  }
+  adminReviewList.innerHTML = groups.map((group) => {
+    const first = group.courses[0];
+    const location = [first.city, first.state].filter(Boolean).join(", ");
+    return `
+      <div class="admin-review-row">
+        <div>
+          <strong>${escapeHtml(group.name)}</strong>
+          <small>${escapeHtml([location, `${group.courses.length} ${group.courses.length === 1 ? "tee" : "tees"}`].filter(Boolean).join(" · "))}</small>
+        </div>
+        <div class="admin-review-actions">
+          ${group.courses.map((course) => `
+            <button class="secondary-action" type="button" data-verify-course="${course.id}">
+              Verify ${escapeHtml(course.tee)}
+            </button>
+          `).join("")}
+        </div>
+      </div>
+    `;
+  }).join("");
 }
 
 function setSignedInUi(isSignedIn) {
@@ -675,6 +725,7 @@ function render() {
   renderDashboard();
   renderRounds();
   renderCourses();
+  renderAdminReviewQueue();
   renderProfile();
 }
 
@@ -1332,6 +1383,7 @@ function renderCatalogCourseList(groups) {
                     </div>
                     <div class="catalog-tee-actions">
                       ${canVerifyCourse(course) ? `<button class="secondary-action" type="button" data-verify-course="${course.id}">Verify</button>` : ""}
+                      <button class="secondary-action" type="button" data-report-course="${course.id}">Report</button>
                       <button class="primary-action" type="button" data-start-course-round="${course.id}">Start</button>
                     </div>
                   </div>
@@ -1864,6 +1916,7 @@ function setActiveHoleScore(score) {
   const nextBlank = roundHoleState.holes.find((hole) => !hasHoleScore(hole) && hole.hole > roundHoleState.activeHole);
   if (nextBlank) roundHoleState.activeHole = nextBlank.hole;
   renderRoundScoringUI();
+  scheduleRoundEditAutoSave();
 }
 
 function validateRoundCard() {
@@ -1872,6 +1925,50 @@ function validateRoundCard() {
   if (missing) return `Hole ${missing.hole} needs a score.`;
   const invalid = roundHoleState.holes.find((hole) => !isValidHoleScore(hole));
   return invalid ? `Hole ${invalid.hole} needs a score from ${scoreOptionsForHole(invalid)[0]} to ${scoreOptionsForHole(invalid).at(-1)}.` : "";
+}
+
+function roundPayloadFromDialog(existingRound = null) {
+  const formData = new FormData(roundForm);
+  const holes = roundHoleState.holes.map((hole) => ({ ...hole, strokes: Number(hole.strokes) }));
+  return {
+    id: existingRound?.id || uid(),
+    createdAt: existingRound?.createdAt || Date.now(),
+    updatedAt: existingRound ? Date.now() : undefined,
+    date: formData.get("date"),
+    courseId: formData.get("courseId"),
+    pcc: numeric(formData, "pcc") || 0,
+    score: holes.reduce((sum, hole) => sum + hole.strokes, 0),
+    holes
+  };
+}
+
+function setRoundAutoSaveStatus(message) {
+  if (roundAutoSaveStatus) roundAutoSaveStatus.textContent = message;
+}
+
+function scheduleRoundEditAutoSave() {
+  if (!editingRoundId || !hasRemoteSession()) return;
+  clearTimeout(roundAutoSaveTimer);
+  setRoundAutoSaveStatus("Unsaved changes");
+  roundAutoSaveTimer = setTimeout(async () => {
+    const existingRound = state.rounds.find((item) => item.id === editingRoundId);
+    if (!existingRound || validateRoundCard()) return;
+    const round = roundPayloadFromDialog(existingRound);
+    try {
+      setRoundAutoSaveStatus("Saving...");
+      setSyncStatus("Saving round...");
+      const saved = await saveRemoteRound(round, existingRound);
+      round.id = saved.id;
+      round.backendCourseId = saved.course_id;
+      round.backendTeeId = saved.tee_id;
+      state.rounds = state.rounds.map((item) => item.id === existingRound.id ? round : item);
+      setRoundAutoSaveStatus("Saved");
+      setSyncStatus("Saved");
+    } catch {
+      setRoundAutoSaveStatus("Save failed");
+      setSyncStatus("Round sync failed");
+    }
+  }, 900);
 }
 
 function metric(label, value, detail = "") {
@@ -2032,6 +2129,8 @@ function openRoundDialog(round = null, preferredCourseId = null) {
     return;
   }
 
+  clearTimeout(roundAutoSaveTimer);
+  setRoundAutoSaveStatus(round ? "Edits auto-save" : "Saves when you add the round");
   if (preferredCourseId) preferredRoundCourseId = preferredCourseId;
   roundForm.reset();
   setRoundDialogMode(round);
@@ -2280,24 +2379,13 @@ roundForm.addEventListener("submit", async (event) => {
       : "Sign in to save rounds.";
     return;
   }
-  const formData = new FormData(roundForm);
   const roundError = validateRoundCard();
   if (roundError) {
     document.querySelector("#roundTotalScore").textContent = roundError;
     return;
   }
-  const holes = roundHoleState.holes.map((hole) => ({ ...hole, strokes: Number(hole.strokes) }));
   const existingRound = editingRoundId ? state.rounds.find((item) => item.id === editingRoundId) : null;
-  const round = {
-    id: existingRound?.id || uid(),
-    createdAt: existingRound?.createdAt || Date.now(),
-    updatedAt: existingRound ? Date.now() : undefined,
-    date: formData.get("date"),
-    courseId: formData.get("courseId"),
-    pcc: numeric(formData, "pcc") || 0,
-    score: holes.reduce((sum, hole) => sum + hole.strokes, 0),
-    holes
-  };
+  const round = roundPayloadFromDialog(existingRound);
   try {
     if (saveButton) {
       saveButton.disabled = true;
@@ -2368,6 +2456,7 @@ document.addEventListener("click", async (event) => {
   const startCourseRoundButton = event.target.closest("[data-start-course-round]");
   const publishCourseButton = event.target.closest("[data-publish-course]");
   const verifyCourseButton = event.target.closest("[data-verify-course]");
+  const reportCourseButton = event.target.closest("[data-report-course]");
   const analyticsCourseButton = event.target.closest("[data-analytics-course]");
   const analyticsTeeButton = event.target.closest("[data-analytics-tee]");
   const analyticsBackButton = event.target.closest("[data-analytics-back]");
@@ -2435,6 +2524,22 @@ document.addEventListener("click", async (event) => {
     await loadRemoteData();
     setSyncStatus("Verified and published");
     render();
+  }
+  if (reportCourseButton) {
+    event.preventDefault();
+    event.stopPropagation();
+    const course = courseById(reportCourseButton.dataset.reportCourse);
+    if (!course) return;
+    const subject = encodeURIComponent(`ParTrack course data issue: ${course.name} ${course.tee}`);
+    const body = encodeURIComponent([
+      `Course: ${course.name}`,
+      `Tee: ${course.tee}`,
+      `Location: ${[course.city, course.state, course.country].filter(Boolean).join(", ")}`,
+      `Rating/Slope: ${course.rating}/${course.slope}`,
+      "",
+      "What should be corrected?"
+    ].join("\n"));
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
   }
   if (analyticsCourseButton) {
     statsView = "course";

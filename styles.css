@@ -2260,6 +2260,14 @@ dialog form {
   margin-top: 18px;
 }
 
+.autosave-status {
+  align-self: center;
+  margin-right: auto;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
 @media (max-width: 1120px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -3259,7 +3267,7 @@ main {
 .catalog-tee-actions .secondary-action,
 .catalog-tee-row .primary-action {
   min-height: 44px;
-  padding-inline: 18px;
+  padding-inline: 14px;
 }
 
 .course-details[open] .round-expand-cue::before {
@@ -3751,6 +3759,50 @@ main {
   margin: 14px 16px 16px;
 }
 
+.settings-admin-card {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-review-list {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-review-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--field-line);
+  border-radius: 8px;
+  background: var(--field-surface);
+}
+
+.admin-review-row strong {
+  color: var(--field-ink);
+  font-size: 1rem;
+}
+
+.admin-review-row small {
+  display: block;
+  margin-top: 3px;
+  color: var(--field-muted);
+  font-weight: 800;
+}
+
+.admin-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.compact-empty {
+  padding: 14px;
+}
+
 .score-picker-head strong {
   color: var(--muted);
   font-size: 0.9rem;
@@ -3767,6 +3819,18 @@ main {
 
   .stat-card {
     min-height: 96px;
+  }
+
+  .admin-review-row {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-review-actions {
+    justify-content: stretch;
+  }
+
+  .admin-review-actions .secondary-action {
+    flex: 1 1 100%;
   }
 
   .field-home-recent {
