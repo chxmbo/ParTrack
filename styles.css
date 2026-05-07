@@ -3854,6 +3854,19 @@ main {
     color: var(--field-ink);
   }
 
+  .analytics-drill-card {
+    color: var(--field-ink);
+  }
+
+  .analytics-drill-card strong {
+    color: var(--field-ink);
+  }
+
+  .analytics-drill-card small,
+  .analytics-drill-card span {
+    color: var(--field-muted);
+  }
+
   .catalog-course-title span {
     color: var(--field-muted);
   }
