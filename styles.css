@@ -641,7 +641,9 @@ h3 {
 }
 
 .stat-graph-card {
-  gap: 10px;
+  gap: 8px;
+  position: relative;
+  overflow: visible;
 }
 
 .stat-graph-shell {
@@ -667,10 +669,10 @@ h3 {
 }
 
 .stat-graph-head {
-  display: flex;
-  align-items: start;
-  justify-content: flex-end;
-  gap: 10px;
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 3;
 }
 
 .stat-graph-head > div {
@@ -688,8 +690,18 @@ h3 {
 .stat-graph-shell svg {
   display: block;
   width: 100%;
-  height: 84px;
+  height: 150px;
   overflow: visible;
+}
+
+.stat-graph-trend {
+  min-width: 82px;
+  padding: 8px 10px;
+  border: 1px solid rgba(227, 241, 224, 0.14);
+  border-radius: 16px;
+  background: rgba(9, 31, 24, 0.82);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.2);
+  text-align: center;
 }
 
 .stat-graph-bubble {
@@ -752,8 +764,8 @@ h3 {
 }
 
 .stat-graph-shell .graph-panel {
-  fill: rgba(9, 31, 24, 0.9);
-  stroke: rgba(193, 214, 187, 0.12);
+  fill: rgba(9, 31, 24, 0.94);
+  stroke: rgba(193, 214, 187, 0.16);
   stroke-width: 1.2;
 }
 
@@ -835,7 +847,8 @@ h3 {
 }
 
 .stat-graph-trend strong {
-  font-size: 2rem;
+  color: #f5f7f2;
+  font-size: 1.45rem;
   line-height: 0.95;
 }
 

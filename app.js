@@ -804,9 +804,9 @@ function renderHandicapGraphCard(summary) {
   const min = Math.min(...values);
   const max = Math.max(...values);
   const width = 248;
-  const height = 116;
+  const height = 140;
   const padX = 18;
-  const padY = 18;
+  const padY = 20;
   const usableWidth = width - padX * 2;
   const usableHeight = height - padY * 2;
   const range = Math.max(1, max - min);
@@ -823,11 +823,12 @@ function renderHandicapGraphCard(summary) {
   });
   const drawablePoints = points.filter((point) => Number.isFinite(point.value));
   const path = drawablePoints.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
+  const trendLabel = trendDelta === null ? "--" : trendDelta === 0 ? "Even" : `${trendDelta > 0 ? "+" : ""}${trendDelta.toFixed(1)}`;
   target.innerHTML = `
     <div class="stat-graph-head">
       <div class="stat-graph-trend">
-        <small>Window change</small>
-        <strong>${trendDelta === null ? "--" : trendDelta === 0 ? "Even" : `${trendDelta > 0 ? "+" : ""}${trendDelta.toFixed(1)}`}</strong>
+        <small>Change</small>
+        <strong>${trendLabel}</strong>
       </div>
     </div>
     <div class="stat-graph-plot">
