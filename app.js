@@ -2689,7 +2689,6 @@ document.querySelectorAll("[data-course-mode]").forEach((button) => {
   button.addEventListener("click", () => {
     courseMode = button.dataset.courseMode || "mine";
     renderCourses();
-    if (courseMode === "catalog") cloudCourseSearch?.focus();
   });
 });
 
