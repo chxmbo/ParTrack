@@ -2467,10 +2467,13 @@ dialog form {
   .compact-form,
   .course-meta-grid,
   .analytics-filters,
-  .analytics-drill-card,
   .round-setup,
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .analytics-drill-card {
+    grid-template-columns: minmax(0, 1fr) auto auto 28px;
   }
 
   .active-hole-card {

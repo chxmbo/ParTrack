@@ -1,4 +1,4 @@
-const CACHE_NAME = "partrack-supabase-v52";
+const CACHE_NAME = "partrack-supabase-v53";
 const APP_SHELL = [
   "./",
   "./index.html",
