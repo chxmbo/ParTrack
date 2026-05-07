@@ -673,6 +673,11 @@ h3 {
   gap: 10px;
 }
 
+.stat-graph-head > div {
+  display: grid;
+  gap: 4px;
+}
+
 .stat-graph-head strong {
   font-size: 2.15rem;
   line-height: 0.95;
@@ -712,6 +717,26 @@ h3 {
   z-index: 2;
 }
 
+.stat-graph-bubble.is-edge-left {
+  transform: translate(0, calc(-100% - 14px));
+}
+
+.stat-graph-bubble.is-edge-right {
+  transform: translate(-100%, calc(-100% - 14px));
+}
+
+.stat-graph-bubble.is-below {
+  transform: translate(-50%, 14px);
+}
+
+.stat-graph-bubble.is-edge-left.is-below {
+  transform: translate(0, 14px);
+}
+
+.stat-graph-bubble.is-edge-right.is-below {
+  transform: translate(-100%, 14px);
+}
+
 .stat-graph-bubble::after {
   position: absolute;
   left: 50%;
@@ -723,6 +748,12 @@ h3 {
   border-bottom: 1px solid rgba(227, 241, 224, 0.14);
   content: "";
   transform: translateX(-50%) rotate(45deg);
+}
+
+.stat-graph-bubble.is-below::after {
+  top: -6px;
+  bottom: auto;
+  transform: translateX(-50%) rotate(225deg);
 }
 
 .stat-graph-shell .graph-panel {
@@ -756,6 +787,12 @@ h3 {
   stroke: rgba(227, 241, 224, 0.58);
   stroke-linecap: round;
   stroke-width: 3.5;
+}
+
+.stat-graph-shell .graph-axis-label {
+  fill: rgba(227, 241, 224, 0.72);
+  font-size: 8px;
+  font-weight: 800;
 }
 
 .stat-graph-shell .graph-line {
@@ -800,6 +837,10 @@ h3 {
   transform-box: fill-box;
   transform-origin: center;
   transform: scale(1.12);
+}
+
+.stat-graph-trend strong {
+  font-size: 1.1rem;
 }
 
 .content-grid,

@@ -798,39 +798,51 @@ function renderHandicapGraphCard(summary) {
     `;
     return;
   }
+  const firstValue = values[0];
+  const latestValue = values[values.length - 1];
+  const trendDelta = Number.isFinite(firstValue) && Number.isFinite(latestValue) ? round1(latestValue - firstValue) : null;
   const min = Math.min(...values);
   const max = Math.max(...values);
-  const width = 168;
-  const height = 84;
-  const padX = 14;
-  const padY = 12;
+  const width = 248;
+  const height = 116;
+  const padX = 18;
+  const padY = 18;
   const usableWidth = width - padX * 2;
   const usableHeight = height - padY * 2;
   const range = Math.max(1, max - min);
-  const gridLines = [0.18, 0.5, 0.82].map((ratio) => padY + usableHeight * ratio);
+  const graphMin = Math.max(0, min - 0.8);
+  const graphMax = max + 0.8;
+  const graphRange = Math.max(1, graphMax - graphMin);
+  const gridLines = [0, 0.5, 1].map((ratio) => padY + usableHeight * ratio);
   const points = graphPoints.map((entry, index) => {
     const x = padX + (graphPoints.length === 1 ? usableWidth / 2 : (usableWidth * index) / (graphPoints.length - 1));
     const y = Number.isFinite(entry.value)
-      ? height - padY - ((entry.value - min) / range) * usableHeight
-      : height - 12;
+      ? height - padY - ((entry.value - graphMin) / graphRange) * usableHeight
+      : height - padY;
     return { x, y, ...entry };
   });
   const drawablePoints = points.filter((point) => Number.isFinite(point.value));
   const path = drawablePoints.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
   target.innerHTML = `
     <div class="stat-graph-head">
-      <strong>${summary.index === null ? "--" : summary.index.toFixed(1)}</strong>
-      <small>${summary.usedRounds.length ? `${summary.usedRounds.length} counting` : "No counting scores yet"}</small>
+      <div>
+        <small>Current handicap</small>
+        <strong>${summary.index === null ? "--" : summary.index.toFixed(1)}</strong>
+      </div>
+      <div class="stat-graph-trend">
+        <small>Visible trend</small>
+        <strong>${trendDelta === null ? "--" : trendDelta === 0 ? "Even" : `${trendDelta > 0 ? "+" : ""}${trendDelta.toFixed(1)}`}</strong>
+      </div>
     </div>
     <div class="stat-graph-plot">
       <svg viewBox="0 0 ${width} ${height}" aria-hidden="true">
-        <rect x="8" y="8" width="${width - 16}" height="${height - 20}" rx="16" class="graph-panel"/>
-        ${gridLines.map((y) => `<path d="M16 ${y.toFixed(1)}h${width - 32}" class="graph-grid"/>`).join("")}
+        <rect x="8" y="8" width="${width - 16}" height="${height - 20}" rx="18" class="graph-panel"/>
+        ${gridLines.map((y) => `<path d="M20 ${y.toFixed(1)}h${width - 40}" class="graph-grid"/>`).join("")}
         ${points
           .filter((point) => Number.isFinite(point.value))
-          .map((point) => `<path d="M${point.x.toFixed(1)} ${height - 12}V${point.y.toFixed(1)}" class="graph-bar"/>`)
+          .map((point) => `<path d="M${point.x.toFixed(1)} ${height - padY}V${point.y.toFixed(1)}" class="graph-bar"/>`)
           .join("")}
-        <path d="M16 ${height - 12}h${width - 32}" class="graph-base"/>
+        <path d="M20 ${height - padY}h${width - 40}" class="graph-base"/>
         <path d="${path}" class="graph-line"/>
         ${points.map((point, index) => {
           const isIncluded = includedIds.has(point.round.id);
@@ -857,12 +869,14 @@ function renderHandicapGraphCard(summary) {
             </g>
           `;
         }).join("")}
+        <text x="20" y="${padY - 4}" class="graph-axis-label">${graphMax.toFixed(1)}</text>
+        <text x="20" y="${height - 4}" class="graph-axis-label">${graphMin.toFixed(1)}</text>
       </svg>
       <div class="stat-graph-bubble" hidden></div>
     </div>
     <div class="stat-graph-meta">
-      <small class="stat-graph-caption">Lowest ${summary.rule?.used || 0} of ${summary.recent.length} in view</small>
-      <small class="stat-graph-tooltip">Hover or tap a point</small>
+      <small class="stat-graph-caption">${summary.usedRounds.length ? `${summary.usedRounds.length} counting scores in the current window` : "Hover or tap a point to inspect that round's handicap"}</small>
+      <small class="stat-graph-tooltip">Latest point selected</small>
     </div>
   `;
 
@@ -880,6 +894,9 @@ function renderHandicapGraphCard(summary) {
     bubble.textContent = message;
     bubble.style.setProperty("--graph-left", `${node.dataset.graphLeft || 50}%`);
     bubble.style.setProperty("--graph-top", `${node.dataset.graphTop || 50}%`);
+    bubble.classList.toggle("is-edge-left", Number(node.dataset.graphLeft || 50) < 24);
+    bubble.classList.toggle("is-edge-right", Number(node.dataset.graphLeft || 50) > 76);
+    bubble.classList.toggle("is-below", Number(node.dataset.graphTop || 50) < 28);
   };
   pointNodes.forEach((node) => {
     node.addEventListener("mouseenter", () => activatePoint(node));
