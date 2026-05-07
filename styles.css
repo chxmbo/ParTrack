@@ -23,6 +23,53 @@
     sans-serif;
 }
 
+/* Mobile app shell lock: prevent page-width drift while preserving table scroll areas. */
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overscroll-behavior-x: none;
+}
+
+body,
+.app-shell,
+main,
+.view,
+.panel,
+.topbar {
+  max-width: 100%;
+}
+
+body,
+.app-shell,
+main,
+.view {
+  overflow-x: clip;
+}
+
+.hole-table-wrap,
+.scorecard-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+@media (max-width: 760px) {
+  html,
+  body,
+  .app-shell {
+    min-width: 0;
+    width: 100%;
+  }
+
+  body {
+    position: relative;
+  }
+
+  .app-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 
 * {
   box-sizing: border-box;

@@ -138,6 +138,25 @@ const roundHoleState = {
   holes: []
 };
 
+function lockViewportGestures() {
+  const preventZoom = (event) => event.preventDefault();
+  document.addEventListener("gesturestart", preventZoom, { passive: false });
+  document.addEventListener("gesturechange", preventZoom, { passive: false });
+  document.addEventListener("gestureend", preventZoom, { passive: false });
+  document.addEventListener("touchmove", (event) => {
+    if (event.touches && event.touches.length > 1) event.preventDefault();
+  }, { passive: false });
+
+  let lastTouchEnd = 0;
+  document.addEventListener("touchend", (event) => {
+    const now = Date.now();
+    if (now - lastTouchEnd < 300) event.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
+}
+
+lockViewportGestures();
+
 function blankState() {
   return {
     profile: { name: "", setupComplete: false },
