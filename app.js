@@ -225,6 +225,14 @@ function canVerifyCourse(course) {
   return Boolean(course?.backendCourseId && course.status === "pending" && isCurrentUserAdmin());
 }
 
+function markCourseApprovedLocal(backendCourseId) {
+  state.courses = state.courses.map((course) => (
+    course.backendCourseId === backendCourseId
+      ? { ...course, status: "approved", isPublicUnverified: false }
+      : course
+  ));
+}
+
 function setSignedInUi(isSignedIn) {
   if (localPreviewMode && !supabaseConfigured) {
     authScreen.hidden = true;
@@ -2244,11 +2252,14 @@ document.addEventListener("click", async (event) => {
   if (publishCourseButton) {
     const course = courseById(publishCourseButton.dataset.publishCourse);
     if (!course?.backendCourseId) return;
+    publishCourseButton.disabled = true;
+    setSyncStatus("Publishing...");
     const { error } = await supabase
       .from("courses")
       .update({ is_public_unverified: true })
       .eq("id", course.backendCourseId);
     if (error) {
+      publishCourseButton.disabled = false;
       setSyncStatus("Publish failed");
       alert(error.message);
       return;
@@ -2260,17 +2271,24 @@ document.addEventListener("click", async (event) => {
   if (verifyCourseButton) {
     const course = courseById(verifyCourseButton.dataset.verifyCourse);
     if (!course?.backendCourseId) return;
+    verifyCourseButton.disabled = true;
+    verifyCourseButton.textContent = "Verifying...";
+    setSyncStatus("Verifying...");
     const { error } = await supabase
       .from("courses")
       .update({ status: "approved", is_public_unverified: false })
       .eq("id", course.backendCourseId);
     if (error) {
+      verifyCourseButton.disabled = false;
+      verifyCourseButton.textContent = "Verify";
       setSyncStatus("Verification failed");
       alert(error.message);
       return;
     }
+    markCourseApprovedLocal(course.backendCourseId);
+    render();
     await loadRemoteData();
-    setSyncStatus("Course verified");
+    setSyncStatus("Verified and published");
     render();
   }
   if (analyticsCourseButton) {
