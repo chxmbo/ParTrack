@@ -1374,6 +1374,23 @@ h3 {
   transform: rotate(225deg);
 }
 
+.analytics-drill-cue {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  color: var(--field-ink);
+}
+
+.analytics-drill-cue::before {
+  width: 11px;
+  height: 11px;
+  border-top: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  content: "";
+  transform: rotate(45deg) translateY(1px);
+}
+
 .round-detail-body {
   display: grid;
   gap: 14px;

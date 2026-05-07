@@ -1603,7 +1603,7 @@ function renderAnalyticsOverview(record) {
             <small>Avg</small>
             <strong>${Number.isFinite(courseStats.averageScore) ? courseStats.averageScore.toFixed(1) : "--"}</strong>
           </span>
-          <span class="round-expand-cue" aria-hidden="true"></span>
+          <span class="analytics-drill-cue" aria-hidden="true"></span>
         </button>
       `;
     })
@@ -1647,7 +1647,7 @@ function renderAnalyticsCourse(record, courseName) {
             <small>Avg</small>
             <strong>${Number.isFinite(teeStats.averageScore) ? teeStats.averageScore.toFixed(1) : "--"}</strong>
           </span>
-          <span class="round-expand-cue" aria-hidden="true"></span>
+          <span class="analytics-drill-cue" aria-hidden="true"></span>
         </button>
       `;
     })
