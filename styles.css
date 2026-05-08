@@ -1547,9 +1547,6 @@ h3 {
 
 .progress-round-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 16px;
-  align-items: center;
   padding: 18px;
   border: 1px solid rgba(216, 180, 82, 0.38);
   border-radius: 8px;
@@ -1558,6 +1555,38 @@ h3 {
     linear-gradient(145deg, rgba(67, 143, 88, 0.08), transparent 42%),
     var(--paper);
   box-shadow: var(--shadow);
+}
+
+.progress-round-card details {
+  display: grid;
+  gap: 12px;
+}
+
+.progress-round-card summary {
+  list-style: none;
+}
+
+.progress-round-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.progress-round-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px;
+  gap: 12px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.progress-round-body {
+  display: grid;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.progress-round-card details[open] .round-expand-cue::before {
+  transform: rotate(225deg);
 }
 
 .progress-round-card h2 {
@@ -1573,13 +1602,13 @@ h3 {
   font-weight: 800;
 }
 
-.progress-round-card > div:first-child {
+.progress-round-summary > div:first-child {
   display: grid;
   gap: 5px;
   min-width: 0;
 }
 
-.progress-round-card > div:first-child > strong {
+.progress-round-summary > div:first-child > strong {
   margin-top: 6px;
   color: var(--green-dark);
   font-size: 2rem;
@@ -4185,6 +4214,12 @@ main {
   color: var(--gold);
 }
 
+.settings-action-row .secondary-action {
+  min-height: 40px;
+  padding: 0 16px;
+  box-shadow: none;
+}
+
 .settings-control {
   width: min(180px, 50%);
 }
@@ -4267,6 +4302,38 @@ main {
     max-width: none;
   }
 
+  html,
+  body {
+    inline-size: 100%;
+    max-inline-size: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    left: 0;
+    right: 0;
+  }
+
+  .auth-screen,
+  .app-shell {
+    inline-size: 100%;
+    max-inline-size: 100%;
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+  }
+
+  main,
+  .topbar,
+  .view,
+  .dashboard-grid,
+  .round-list,
+  .course-list,
+  .score-entry {
+    inline-size: 100%;
+    max-inline-size: 100%;
+    min-inline-size: 0;
+  }
+
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
@@ -4329,6 +4396,24 @@ main {
     font-size: 0.58rem;
     font-weight: 900;
     text-transform: uppercase;
+  }
+
+  dialog[open],
+  #roundDialog[open] {
+    inset: 0;
+    inline-size: 100%;
+    max-inline-size: 100%;
+    min-inline-size: 0;
+    margin: 0;
+    overscroll-behavior-x: none;
+    touch-action: pan-y;
+  }
+
+  dialog form,
+  #roundForm {
+    inline-size: 100%;
+    max-inline-size: 100%;
+    min-inline-size: 0;
   }
 }
 

@@ -14,7 +14,7 @@
     <link rel="manifest" href="./public/manifest.webmanifest" />
     <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" sizes="192x192" href="./public/icons/icon-192.png" />
-    <link rel="stylesheet" href="./styles.css?v=63" />
+    <link rel="stylesheet" href="./styles.css?v=64" />
     <script src="./env-config.js?v=63"></script>
   </head>
   <body>
@@ -337,6 +337,10 @@
                 <span>Sync status</span>
                 <strong id="settingsSyncLabel">Synced</strong>
               </div>
+              <div class="settings-row settings-action-row">
+                <span>Account data</span>
+                <button class="secondary-action" type="button" data-refresh-data>Refresh</button>
+              </div>
               <div class="settings-row">
                 <span>Handicap basis</span>
                 <label class="settings-control" aria-label="Handicap basis">
@@ -475,6 +479,6 @@
       </form>
     </dialog>
 
-    <script type="module" src="./app.js?v=63"></script>
+    <script type="module" src="./app.js?v=64"></script>
   </body>
 </html>

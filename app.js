@@ -218,6 +218,14 @@ function storedPreferredTeeId() {
   return localStorage.getItem(preferredTeeStorageKey) || "";
 }
 
+function rememberRoundCourse(courseId) {
+  const course = courseById(courseId);
+  if (!course) return;
+  localStorage.setItem(preferredCourseStorageKey, course.name);
+  localStorage.setItem(preferredTeeStorageKey, course.id);
+  renderSettingsControls();
+}
+
 function hasRemoteSession() {
   return Boolean(supabase && remoteSession?.user);
 }
@@ -402,6 +410,26 @@ async function loadRemoteData() {
     }))
     .map((round) => normalizeRound(round, state.courses));
   setSyncStatus("Synced");
+}
+
+async function refreshAccountData() {
+  if (!hasRemoteSession()) {
+    showActionStatus("Sign in to refresh your account.", "error");
+    return;
+  }
+  if (!navigator.onLine) {
+    showActionStatus("Reconnect before refreshing.", "error");
+    return;
+  }
+  try {
+    setSyncStatus("Checking...");
+    await loadRemoteData();
+    render();
+    showActionStatus("Account refreshed.");
+  } catch {
+    setSyncStatus("Refresh failed");
+    showActionStatus("Refresh failed. Try again in a moment.", "error");
+  }
 }
 
 function mapCourseToRemote(course, formData, holes) {
@@ -955,18 +983,25 @@ function renderInProgressRoundCard(round) {
       : "Saved draft. Score 9 holes to count it toward your handicap estimate.";
   return `
     <article class="progress-round-card">
-      <div>
-        <p class="eyebrow">Round in progress</p>
-        <h2>${escapeHtml(round.course.name)}</h2>
-        <p>${escapeHtml([round.course.tee, formatDate(round.date), status.label].filter(Boolean).join(" · "))}</p>
-        <strong>${round.holesPlayed}/18 holes</strong>
-        <small>${escapeHtml(scoreLabel)}</small>
-        <span>${escapeHtml(note)}</span>
-      </div>
-      <div class="progress-round-actions">
-        <button class="primary-action" type="button" data-resume-round="${round.id}">Resume</button>
-        <button class="delete-button" type="button" data-delete-round="${round.id}">Delete</button>
-      </div>
+      <details>
+        <summary class="progress-round-summary">
+          <div>
+            <p class="eyebrow">Round in progress</p>
+            <h2>${escapeHtml(round.course.name)}</h2>
+            <p>${escapeHtml([round.course.tee, formatDate(round.date), status.label].filter(Boolean).join(" · "))}</p>
+            <strong>${round.holesPlayed}/18 holes</strong>
+            <small>${escapeHtml(scoreLabel)}</small>
+          </div>
+          <span class="round-expand-cue" aria-hidden="true"></span>
+        </summary>
+        <div class="progress-round-body">
+          <span>${escapeHtml(note)}</span>
+          <div class="progress-round-actions">
+            <button class="primary-action" type="button" data-resume-round="${round.id}">Resume</button>
+            <button class="delete-button" type="button" data-delete-round="${round.id}">Delete</button>
+          </div>
+        </div>
+      </details>
     </article>
   `;
 }
@@ -2832,6 +2867,7 @@ roundForm.addEventListener("submit", async (event) => {
     round.id = saved.id;
     round.backendCourseId = saved.course_id;
     round.backendTeeId = saved.tee_id;
+    rememberRoundCourse(round.courseId);
     if (existingRound) state.rounds = state.rounds.map((item) => item.id === existingRound.id ? round : item);
     else state.rounds.push(round);
     await loadRemoteData();
@@ -2844,6 +2880,15 @@ roundForm.addEventListener("submit", async (event) => {
         ? "9-hole round saved for your handicap estimate."
         : "Round progress saved.";
     showActionStatus(existingRound ? "Round changes saved." : saveMessage);
+    if (holesPlayed < 18) {
+      editingRoundId = round.id;
+      setRoundDialogMode(round);
+      renderRoundScoringUI();
+      setRoundAutoSaveStatus("Progress saved");
+      if (saveButton) saveButton.disabled = false;
+      render();
+      return;
+    }
   } catch (error) {
     document.querySelector("#roundTotalScore").textContent = error.message || "Could not save round.";
     setSyncStatus("Round sync failed");
@@ -3151,6 +3196,8 @@ document.querySelector("[data-export]")?.addEventListener("click", () => {
   anchor.click();
   URL.revokeObjectURL(url);
 });
+
+document.querySelector("[data-refresh-data]")?.addEventListener("click", refreshAccountData);
 
 window.addEventListener("hashchange", route);
 window.addEventListener("resize", () => drawTrend(handicapSummary().recent));
