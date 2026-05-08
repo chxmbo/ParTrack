@@ -1515,6 +1515,84 @@ h3 {
   gap: 14px;
 }
 
+.progress-round-section,
+.round-history-section {
+  display: grid;
+  gap: 14px;
+}
+
+.progress-round-section {
+  margin-bottom: 8px;
+}
+
+.progress-round-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+}
+
+.progress-round-heading span {
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.progress-round-heading strong {
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.progress-round-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 18px;
+  border: 1px solid rgba(216, 180, 82, 0.38);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 88% 16%, rgba(226, 188, 95, 0.18), transparent 36%),
+    linear-gradient(145deg, rgba(67, 143, 88, 0.08), transparent 42%),
+    var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.progress-round-card h2 {
+  margin: 0;
+  font-size: clamp(1.5rem, 8vw, 2.15rem);
+  line-height: 1;
+}
+
+.progress-round-card p:not(.eyebrow),
+.progress-round-card small,
+.progress-round-card span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.progress-round-card > div:first-child {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.progress-round-card > div:first-child > strong {
+  margin-top: 6px;
+  color: var(--green-dark);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.progress-round-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .round-history-card {
   display: block;
   padding: 0;
@@ -2593,6 +2671,18 @@ dialog form {
   .card-actions {
     flex-direction: row;
   }
+
+  .progress-round-card {
+    grid-template-columns: 1fr;
+  }
+
+  .progress-round-actions {
+    justify-content: stretch;
+  }
+
+  .progress-round-actions > * {
+    flex: 1;
+  }
 }
 
 @media (max-width: 760px) {
@@ -2838,6 +2928,14 @@ dialog form {
   .scorecard-mini {
     gap: 10px;
     overflow-x: hidden;
+  }
+
+  .field-resume-card {
+    grid-template-columns: 1fr;
+  }
+
+  .field-resume-card .secondary-action {
+    justify-self: start;
   }
 
   .scorecard-row {
@@ -3900,6 +3998,43 @@ main {
 
 .field-recent-score {
   min-height: 86px;
+}
+
+.field-resume-card {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(216, 180, 82, 0.36);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(216, 180, 82, 0.16), transparent 34%),
+    var(--field-panel);
+}
+
+.field-resume-card div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.field-resume-card span {
+  color: var(--field-muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.field-resume-card strong {
+  color: var(--field-ink);
+  line-height: 1;
+}
+
+.field-resume-card small {
+  color: var(--field-muted);
+  font-weight: 800;
 }
 
 .dashboard-grid {

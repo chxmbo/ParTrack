@@ -725,6 +725,10 @@ function roundHistoryRecord() {
     .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
 }
 
+function inProgressRoundRecord() {
+  return roundHistoryRecord().filter((round) => round.holesPlayed > 0 && round.holesPlayed < 18);
+}
+
 function completedRoundRecord() {
   return state.rounds
     .map(roundWithMath)
@@ -871,8 +875,20 @@ function renderDashboard() {
 function renderHomeRecentRound(round) {
   const target = document.querySelector("#homeRecentRound");
   if (!target) return;
+  const inProgress = inProgressRoundRecord()[0];
+  const progressMarkup = inProgress ? `
+    <div class="field-resume-card">
+      <div>
+        <span>Round in progress</span>
+        <strong>${escapeHtml(inProgress.course.name)}</strong>
+        <small>${escapeHtml([inProgress.course.tee, formatDate(inProgress.date), `${inProgress.holesPlayed}/18 holes`].filter(Boolean).join(" · "))}</small>
+      </div>
+      <button class="secondary-action" type="button" data-resume-round="${inProgress.id}">Resume</button>
+    </div>
+  ` : "";
   if (!round) {
     target.innerHTML = `
+      ${progressMarkup}
       <div class="field-recent-empty">
         <span>Most recent round</span>
         <strong>No rounds yet</strong>
@@ -883,6 +899,7 @@ function renderHomeRecentRound(round) {
   }
   const status = handicapStatusByRound([round])[round.id] || handicapEligibility(round, round.course);
   target.innerHTML = `
+    ${progressMarkup}
     <div class="field-recent-copy">
       <span>Most recent round</span>
       <strong>${escapeHtml(round.course.name)}</strong>
@@ -921,6 +938,36 @@ function renderRoundSummaryScoreTile(round) {
       <strong>${round.holesPlayed}/18</strong>
       <small>${Number.isFinite(round.partialScore) ? `${round.partialScore} strokes` : "Saved draft"}</small>
     </div>
+  `;
+}
+
+function renderInProgressRoundCard(round) {
+  const status = handicapEligibility(round, round.course);
+  const scoreLabel = round.holesPlayed === 9
+    ? `${round.partialScore} strokes · counts as 9`
+    : Number.isFinite(round.partialScore)
+      ? `${round.partialScore} strokes saved`
+      : "Progress saved";
+  const note = round.holesPlayed === 9
+    ? "This 9-hole score is included in your handicap estimate. Resume if you play the other nine."
+    : round.holesPlayed > 9
+      ? "Saved in progress. It will count when all 18 holes are finished."
+      : "Saved draft. Score 9 holes to count it toward your handicap estimate.";
+  return `
+    <article class="progress-round-card">
+      <div>
+        <p class="eyebrow">Round in progress</p>
+        <h2>${escapeHtml(round.course.name)}</h2>
+        <p>${escapeHtml([round.course.tee, formatDate(round.date), status.label].filter(Boolean).join(" · "))}</p>
+        <strong>${round.holesPlayed}/18 holes</strong>
+        <small>${escapeHtml(scoreLabel)}</small>
+        <span>${escapeHtml(note)}</span>
+      </div>
+      <div class="progress-round-actions">
+        <button class="primary-action" type="button" data-resume-round="${round.id}">Resume</button>
+        <button class="delete-button" type="button" data-delete-round="${round.id}">Delete</button>
+      </div>
+    </article>
   `;
 }
 
@@ -1238,6 +1285,8 @@ function drawTrend(rounds) {
 function renderRounds() {
   const target = document.querySelector("#roundList");
   const record = roundHistoryRecord();
+  const inProgress = record.filter((round) => round.holesPlayed > 0 && round.holesPlayed < 18);
+  const history = record.filter((round) => round.holesPlayed === 18);
   const handicapRecord = scoringRecord();
   const currentHandicapIndex = handicapSummary().index;
   const handicapChanges = handicapChangesByRound(handicapRecord);
@@ -1247,7 +1296,17 @@ function renderRounds() {
     return;
   }
 
-  target.innerHTML = record
+  const inProgressMarkup = inProgress.length ? `
+    <section class="progress-round-section" aria-label="Rounds in progress">
+      <div class="progress-round-heading">
+        <span>Resume</span>
+        <strong>${inProgress.length} ${inProgress.length === 1 ? "round" : "rounds"} in progress</strong>
+      </div>
+      ${inProgress.map(renderInProgressRoundCard).join("")}
+    </section>
+  ` : "";
+
+  const historyMarkup = history.length ? history
     .map((round) => {
       const roundHandicapIndex = handicapChanges[round.id]?.after ?? currentHandicapIndex;
       const hasHandicapIndex = Number.isFinite(roundHandicapIndex);
@@ -1340,7 +1399,12 @@ function renderRounds() {
       </article>
     `;
     })
-    .join("");
+    .join("") : "";
+
+  target.innerHTML = `
+    ${inProgressMarkup}
+    ${historyMarkup ? `<section class="round-history-section" aria-label="Completed rounds">${historyMarkup}</section>` : ""}
+  `;
 }
 
 function roundScoringStats(round) {
@@ -2836,6 +2900,7 @@ courseForm.addEventListener("submit", async (event) => {
 
 document.addEventListener("click", async (event) => {
   const editRoundButton = event.target.closest("[data-edit-round]");
+  const resumeRoundButton = event.target.closest("[data-resume-round]");
   const roundButton = event.target.closest("[data-delete-round]");
   const courseButton = event.target.closest("[data-delete-course]");
   const startCourseRoundButton = event.target.closest("[data-start-course-round]");
@@ -2855,6 +2920,12 @@ document.addEventListener("click", async (event) => {
   if (nextHoleButton) setActiveRoundHole(roundHoleState.activeHole + 1);
   if (editRoundButton) {
     const round = state.rounds.find((item) => item.id === editRoundButton.dataset.editRound);
+    if (round) openRoundDialog(round);
+  }
+  if (resumeRoundButton) {
+    event.preventDefault();
+    event.stopPropagation();
+    const round = state.rounds.find((item) => item.id === resumeRoundButton.dataset.resumeRound);
     if (round) openRoundDialog(round);
   }
   if (startCourseRoundButton) {
