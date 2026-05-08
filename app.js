@@ -3096,6 +3096,8 @@ document.addEventListener("click", async (event) => {
     renderAnalytics();
   }
   if (roundButton) {
+    event.preventDefault();
+    event.stopPropagation();
     if (!confirm("Delete this round from your account?")) return;
     if (!hasRemoteSession()) {
       alert("Open the hosted app and sign in to delete synced rounds.");
@@ -3110,17 +3112,24 @@ document.addEventListener("click", async (event) => {
     setSyncStatus("Deleting round...");
     const roundId = roundButton.dataset.deleteRound;
     const previousRounds = state.rounds;
+    clearTimeout(roundAutoSaveTimer);
+    if (editingRoundId === roundId) {
+      editingRoundId = null;
+      if (roundDialog?.open) roundDialog.close();
+    }
     state.rounds = state.rounds.filter((round) => round.id !== roundId);
     render();
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("rounds")
       .delete()
       .eq("id", roundId)
-      .eq("user_id", remoteUserId());
-    if (error) {
+      .eq("user_id", remoteUserId())
+      .select("id")
+      .maybeSingle();
+    if (error || !data) {
       state.rounds = previousRounds;
       setSyncStatus("Delete failed");
-      showActionStatus("Round was not deleted. Try again in a moment.", "error");
+      showActionStatus(error?.message || "Round was not deleted. Refresh and try again.", "error");
       render();
       return;
     }
