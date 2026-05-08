@@ -14,8 +14,8 @@
     <link rel="manifest" href="./public/manifest.webmanifest" />
     <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" sizes="192x192" href="./public/icons/icon-192.png" />
-    <link rel="stylesheet" href="./styles.css?v=57" />
-    <script src="./env-config.js?v=57"></script>
+    <link rel="stylesheet" href="./styles.css?v=59" />
+    <script src="./env-config.js?v=59"></script>
   </head>
   <body>
     <section id="authScreen" class="auth-screen" hidden>
@@ -102,6 +102,7 @@
             Round
           </button>
         </header>
+        <div id="actionStatus" class="action-status" aria-live="polite" hidden></div>
 
         <section id="dashboard" class="view active" aria-labelledby="view-title">
           <div class="dashboard-grid">
@@ -110,15 +111,15 @@
                 <div>
                   <p class="eyebrow">Estimated index</p>
                   <strong id="handicapIndex">--</strong>
-                  <span id="handicapStatus">Add 3 completed rounds to establish an index.</span>
+                  <span id="handicapStatus">Add 3 eligible scores to establish an index.</span>
                 </div>
-                <div class="hero-progress" aria-label="Progress toward a full 20-round index">
+                <div class="hero-progress" aria-label="Progress toward a full 20-score index">
                   <div class="progress-ring" style="--progress: 0">
                     <span id="twentyProgressLabel">0/20</span>
                   </div>
                   <div>
                     <p class="eyebrow">Scoring window</p>
-                    <span id="twentyProgressText">Start a 20-round record</span>
+                    <span id="twentyProgressText">Start a 20-score record</span>
                   </div>
                 </div>
               </div>
@@ -152,6 +153,8 @@
               </div>
               <canvas id="trendChart" width="900" height="320" aria-label="Handicap chart"></canvas>
             </section>
+
+            <section class="panel quick-start-panel" id="quickStartPanel" aria-live="polite"></section>
 
             <section class="panel" aria-labelledby="used-heading">
               <div class="panel-header">
@@ -195,6 +198,12 @@
           </section>
           <div id="courseList" class="course-list"></div>
           <form id="courseForm" class="panel course-form is-collapsed">
+            <div class="course-form-steps" aria-label="Course setup steps">
+              <span>1. Course</span>
+              <span>2. Tee</span>
+              <span>3. Scorecard</span>
+              <span>4. Save</span>
+            </div>
             <div class="course-meta-grid">
               <label class="course-form-mode-field">
                 Course setup
@@ -287,6 +296,7 @@
             <div id="analyticsContent" class="analytics-content">
               <div id="analyticsNav" class="analytics-nav"></div>
               <div id="analyticsSummary" class="metric-grid analytics-summary"></div>
+              <div id="analyticsInsights" class="insight-list"></div>
               <div id="analyticsDrillList" class="analytics-drill-list"></div>
               <section id="analyticsParBreakdown" class="par-average-section" hidden></section>
               <div id="analyticsHoleWrap" class="hole-table-wrap">
@@ -335,6 +345,18 @@
                     <option value="gross">Gross scoring</option>
                     <option value="net">Net scoring</option>
                   </select>
+                </label>
+              </div>
+              <div class="settings-row">
+                <span>Default course</span>
+                <label class="settings-control" aria-label="Default course">
+                  <select id="preferredCourseSelect"></select>
+                </label>
+              </div>
+              <div class="settings-row">
+                <span>Default tee</span>
+                <label class="settings-control" aria-label="Default tee">
+                  <select id="preferredTeeSelect"></select>
                 </label>
               </div>
             </article>
@@ -450,6 +472,6 @@
       </form>
     </dialog>
 
-    <script type="module" src="./app.js?v=57"></script>
+    <script type="module" src="./app.js?v=59"></script>
   </body>
 </html>

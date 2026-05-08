@@ -5,6 +5,8 @@ const supabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 const localPreviewMode = window.location.protocol === "file:";
 const themeStorageKey = "partrack-theme";
 const handicapBasisStorageKey = "partrack-handicap-basis";
+const preferredCourseStorageKey = "partrack-preferred-course";
+const preferredTeeStorageKey = "partrack-preferred-tee";
 let supabase = null;
 
 function authRedirectUrl() {
@@ -111,11 +113,15 @@ const analyticsContent = document.querySelector("#analyticsContent");
 const analyticsNav = document.querySelector("#analyticsNav");
 const analyticsDrillList = document.querySelector("#analyticsDrillList");
 const analyticsParBreakdown = document.querySelector("#analyticsParBreakdown");
+const analyticsInsights = document.querySelector("#analyticsInsights");
 const analyticsHoleWrap = document.querySelector("#analyticsHoleWrap");
 const cloudCourseSearch = document.querySelector("#cloudCourseSearch");
 const courseList = document.querySelector("#courseList");
 const adminReviewPanel = document.querySelector("#adminReviewPanel");
 const adminReviewList = document.querySelector("#adminReviewList");
+const actionStatus = document.querySelector("#actionStatus");
+const preferredCourseSelect = document.querySelector("#preferredCourseSelect");
+const preferredTeeSelect = document.querySelector("#preferredTeeSelect");
 const holeRows = document.querySelector("#holeRows");
 const holeTotals = document.querySelector("#holeTotals");
 const strokeButtons = document.querySelector("#strokeButtons");
@@ -191,6 +197,25 @@ function setSyncStatus(message) {
     if (/saving|syncing|deleting|publishing|verifying/i.test(message)) settingsSyncLabel.textContent = "Saving...";
     else settingsSyncLabel.textContent = /failed|offline|sign in|required/i.test(message) ? "Needs attention" : "Saved";
   }
+}
+
+function showActionStatus(message, tone = "info") {
+  if (!actionStatus) return;
+  actionStatus.textContent = message;
+  actionStatus.dataset.tone = tone;
+  actionStatus.hidden = false;
+  clearTimeout(showActionStatus.timer);
+  showActionStatus.timer = setTimeout(() => {
+    actionStatus.hidden = true;
+  }, tone === "error" ? 5200 : 3200);
+}
+
+function storedPreferredCourseName() {
+  return localStorage.getItem(preferredCourseStorageKey) || "";
+}
+
+function storedPreferredTeeId() {
+  return localStorage.getItem(preferredTeeStorageKey) || "";
 }
 
 function hasRemoteSession() {
@@ -284,6 +309,7 @@ function renderAdminReviewQueue() {
     adminReviewList.innerHTML = `<div class="empty compact-empty">No courses waiting for review.</div>`;
     return;
   }
+  const totalTees = groups.reduce((sum, group) => sum + group.courses.length, 0);
   adminReviewList.innerHTML = groups.map((group) => {
     const first = group.courses[0];
     const location = [first.city, first.state].filter(Boolean).join(", ");
@@ -303,6 +329,7 @@ function renderAdminReviewQueue() {
       </div>
     `;
   }).join("");
+  adminReviewList.insertAdjacentHTML("afterbegin", `<div class="admin-review-summary">${totalTees} ${totalTees === 1 ? "tee" : "tees"} waiting across ${groups.length} ${groups.length === 1 ? "course" : "courses"}.</div>`);
 }
 
 function setSignedInUi(isSignedIn) {
@@ -487,13 +514,14 @@ async function saveRemoteRound(round, existingRound = null) {
   if (!course?.backendCourseId || !course?.backendTeeId) {
     throw new Error("Choose a course before saving a round.");
   }
+  const postingScore = handicapPostingScore(round, course);
   const payload = {
     user_id: remoteUserId(),
     course_id: course.backendCourseId,
     tee_id: course.backendTeeId,
     played_at: round.date,
-    gross_score: round.score,
-    adjusted_gross_score: round.score,
+    gross_score: partialRoundScore(round),
+    adjusted_gross_score: postingScore,
     differential: differential(round, course),
     pcc: Number(round.pcc) || 0,
     holes: round.holes,
@@ -588,11 +616,45 @@ function roundScore(round) {
   return Number(round.score) || null;
 }
 
+function partialRoundScore(round) {
+  if (!Array.isArray(round.holes) || !round.holes.length) return Number(round.score) || null;
+  const strokes = round.holes.filter(hasHoleScore).map((hole) => Number(hole.strokes));
+  return strokes.length ? strokes.reduce((sum, value) => sum + value, 0) : null;
+}
+
+function partialRoundToPar(round) {
+  if (!Array.isArray(round.holes) || !round.holes.length) return null;
+  const scored = round.holes.filter(hasHoleScore);
+  if (!scored.length) return null;
+  const score = partialRoundScore(round);
+  const par = scored.reduce((sum, hole) => sum + (Number(hole.par) || 0), 0);
+  return Number.isFinite(score) ? score - par : null;
+}
+
 function scoredHoleCount(round) {
   if (Array.isArray(round.holes) && round.holes.length) {
     return round.holes.filter(hasHoleScore).length;
   }
   return Number.isFinite(Number(round.score)) ? 18 : 0;
+}
+
+function unplayedPar(round, course = courseById(round.courseId)) {
+  if (!Array.isArray(round.holes) || !round.holes.length) return 0;
+  return round.holes
+    .filter((hole) => !hasHoleScore(hole))
+    .reduce((sum, hole, index) => {
+      const fallback = course?.holes?.[index]?.par;
+      return sum + (Number(hole.par) || Number(fallback) || 0);
+    }, 0);
+}
+
+function handicapPostingScore(round, course = courseById(round.courseId)) {
+  const score = roundScore(round);
+  if (Number.isFinite(score)) return score;
+  if (scoredHoleCount(round) !== 9) return null;
+  const partial = partialRoundScore(round);
+  if (!Number.isFinite(partial)) return null;
+  return partial + unplayedPar(round, course);
 }
 
 function isValidRatingSlope(course) {
@@ -610,9 +672,10 @@ function handicapEligibility(round, course = courseById(round.courseId)) {
 
   if (!course) return base;
   if (holesPlayed < 9) return { ...base, reason: "Fewer than 9 holes" };
-  if (holesPlayed < 18) return { ...base, reason: holesPlayed === 9 ? "9-hole posting not supported yet" : "Incomplete round" };
   if (!isValidRatingSlope(course)) return { ...base, reason: "Missing rating/slope" };
   if (coursePar < 60) return { ...base, reason: "Par below 60" };
+  if (holesPlayed === 9) return { eligible: true, status: "eligible", label: "9-hole", reason: "9 holes counted for index" };
+  if (holesPlayed < 18) return { ...base, status: "not-eligible", label: "In progress", reason: `${holesPlayed}/18 holes saved` };
 
   return { eligible: true, status: "eligible", label: "Eligible", reason: "Counts toward index" };
 }
@@ -624,22 +687,42 @@ function roundToPar(round) {
   return Number.isFinite(score) ? score - par : null;
 }
 
+function handicapPostingToPar(round, course = courseById(round.courseId)) {
+  const score = handicapPostingScore(round, course);
+  if (!Number.isFinite(score) || !course) return null;
+  return score - totalPar(course);
+}
+
 function differential(round, course = courseById(round.courseId)) {
   if (!course) return null;
-  const score = roundScore(round);
+  const score = handicapPostingScore(round, course);
   if (!Number.isFinite(score)) return null;
   return round1((113 / Number(course.slope)) * (score - Number(course.rating) - Number(round.pcc || 0)));
 }
 
 function roundWithMath(round) {
   const course = courseById(round.courseId);
+  const holesPlayed = scoredHoleCount(round);
   return {
     ...round,
     course,
     score: roundScore(round),
+    partialScore: partialRoundScore(round),
+    postingScore: handicapPostingScore(round, course),
+    holesPlayed,
+    isComplete: holesPlayed === 18,
     toPar: roundToPar(round),
+    partialToPar: partialRoundToPar(round),
+    postingToPar: handicapPostingToPar(round, course),
     differential: differential(round, course)
   };
+}
+
+function roundHistoryRecord() {
+  return state.rounds
+    .map(roundWithMath)
+    .filter((round) => round.course)
+    .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
 }
 
 function completedRoundRecord() {
@@ -650,7 +733,7 @@ function completedRoundRecord() {
 }
 
 function scoringRecord() {
-  return completedRoundRecord()
+  return roundHistoryRecord()
     .filter((round) => handicapEligibility(round, round.course).eligible && Number.isFinite(round.differential));
 }
 
@@ -700,7 +783,8 @@ function indexFromRecord(record) {
 
 function handicapSummary() {
   const record = completedRoundRecord();
-  return { record, ...indexFromRecord(record) };
+  const handicapRecord = scoringRecord();
+  return { record, handicapRecord, ...indexFromRecord(handicapRecord) };
 }
 
 function handicapChangesByRound(record) {
@@ -746,6 +830,8 @@ function render() {
   renderRounds();
   renderCourses();
   renderAdminReviewQueue();
+  renderSettingsControls();
+  renderQuickStartPanel();
   renderProfile();
 }
 
@@ -768,13 +854,13 @@ function renderDashboard() {
 
   document.querySelector("#countToTwenty").textContent = !state.courses.length
     ? "Fresh start"
-    : summary.recent.length >= 20 ? "Full 20-round index" : `${20 - summary.recent.length} to full index`;
+    : summary.recent.length >= 20 ? "Full 20-score index" : `${20 - summary.recent.length} to full index`;
   document.querySelector("#twentyProgressLabel").textContent = `${Math.min(summary.recent.length, 20)}/20`;
   document.querySelector("#twentyProgressText").textContent = !state.courses.length
     ? "Find a course to begin"
     : summary.recent.length >= 20
     ? "Full handicap window"
-    : `${20 - summary.recent.length} rounds until full window`;
+    : `${20 - summary.recent.length} scores until full window`;
   document.querySelector(".progress-ring").style.setProperty("--progress", `${Math.min(summary.recent.length, 20) / 20}`);
 
   renderHomeRecentRound(latestRound);
@@ -810,6 +896,79 @@ function renderHomeRecentRound(round) {
   `;
 }
 
+function renderRoundSummaryScoreTile(round) {
+  if (round.isComplete) {
+    return `
+      <div class="round-score-tile" aria-label="Round score">
+        <span>To par</span>
+        <strong>${formatToPar(round.toPar)}</strong>
+        <small>Gross ${round.score}</small>
+      </div>
+    `;
+  }
+  if (round.holesPlayed === 9) {
+    return `
+      <div class="round-score-tile is-estimated" aria-label="Round estimated for handicap">
+        <span>9-hole index</span>
+        <strong>${formatToPar(round.postingToPar)}</strong>
+        <small>${round.partialScore} strokes</small>
+      </div>
+    `;
+  }
+  return `
+    <div class="round-score-tile is-draft" aria-label="Round in progress">
+      <span>In progress</span>
+      <strong>${round.holesPlayed}/18</strong>
+      <small>${Number.isFinite(round.partialScore) ? `${round.partialScore} strokes` : "Saved draft"}</small>
+    </div>
+  `;
+}
+
+function renderQuickStartPanel() {
+  const target = document.querySelector("#quickStartPanel");
+  if (!target) return;
+  const completed = completedRoundRecord();
+  const eligible = scoringRecord();
+  const pendingReviews = adminPendingCourseGroups().reduce((sum, group) => sum + group.courses.length, 0);
+  const steps = [
+    {
+      label: "Course library",
+      done: state.courses.length > 0,
+      text: state.courses.length ? `${courseGroups().length} courses ready` : "Add or verify a course"
+    },
+    {
+      label: "Scoring record",
+      done: completed.length > 0,
+      text: completed.length ? `${completed.length} rounds saved` : "Save your first round"
+    },
+    {
+      label: "Index window",
+      done: eligible.length >= 20,
+      text: eligible.length >= 20 ? "Full 20-score window" : `${Math.max(0, 20 - eligible.length)} scores to full window`
+    }
+  ];
+  target.innerHTML = `
+    <div class="panel-header">
+      <div>
+        <p class="eyebrow">Next up</p>
+        <h2>Keep building your record</h2>
+      </div>
+      ${pendingReviews ? `<span class="pill">${pendingReviews} to review</span>` : ""}
+    </div>
+    <div class="quick-start-list">
+      ${steps.map((step) => `
+        <div class="quick-start-step${step.done ? " is-done" : ""}">
+          <span>${step.done ? "Done" : "Next"}</span>
+          <div>
+            <strong>${step.label}</strong>
+            <small>${step.text}</small>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
 function favoriteCourseName(record) {
   const counts = new Map();
   for (const round of record) counts.set(round.course.name, (counts.get(round.course.name) || 0) + 1);
@@ -826,7 +985,7 @@ function renderHandicapGraphCard(summary) {
   const target = document.querySelector("#bestScoreGraph");
   if (!target) return;
   const chronological = [...summary.recent].reverse();
-  const handicapChanges = handicapChangesByRound(summary.record || []);
+  const handicapChanges = handicapChangesByRound(summary.handicapRecord || summary.recent || []);
   const graphPoints = chronological.map((round) => ({
     round,
     change: handicapChanges[round.id],
@@ -936,7 +1095,7 @@ function renderHandicapGraphCard(summary) {
       </svg>
     </div>
     <div class="stat-graph-meta">
-      <small class="stat-graph-caption">${summary.usedRounds.length ? `${summary.usedRounds.length} counting scores in the current window` : "Hover or tap a point to inspect that round's handicap"}</small>
+      <small class="stat-graph-caption">${summary.usedRounds.length ? `${summary.usedRounds.length} counting scores in the current window` : "Tap a point to inspect that round's handicap"}</small>
       <small class="stat-graph-tooltip">Latest point selected</small>
     </div>
   `;
@@ -976,7 +1135,7 @@ function indexStatus(summary) {
   }
   if (summary.index === null) {
     const needed = 3 - summary.recent.length;
-    return `Add ${needed} more completed ${needed === 1 ? "round" : "rounds"} to establish an index.`;
+    return `Add ${needed} more eligible ${needed === 1 ? "score" : "scores"} to establish an index.`;
   }
 
   const adjustment = summary.rule.adjustment ? `, ${summary.rule.adjustment.toFixed(1)} adjustment` : "";
@@ -986,7 +1145,7 @@ function indexStatus(summary) {
 function renderCountingScores(summary) {
   const target = document.querySelector("#countingScores");
   if (!summary.usedRounds.length) {
-    target.innerHTML = `<div class="empty">Your counting scores will appear after you record 3 completed rounds.</div>`;
+    target.innerHTML = `<div class="empty">Your counting scores will appear after you record 3 eligible scores.</div>`;
     return;
   }
 
@@ -997,7 +1156,7 @@ function renderCountingScores(summary) {
           <strong>${round.differential.toFixed(1)}</strong>
           <div>${escapeHtml(round.course.name)} · ${formatDate(round.date)}</div>
         </div>
-        <span>${round.score}</span>
+        <span>${Number.isFinite(round.score) ? round.score : `${round.partialScore} thru 9`}</span>
       </div>
     `)
     .join("");
@@ -1078,7 +1237,7 @@ function drawTrend(rounds) {
 
 function renderRounds() {
   const target = document.querySelector("#roundList");
-  const record = completedRoundRecord();
+  const record = roundHistoryRecord();
   const handicapRecord = scoringRecord();
   const currentHandicapIndex = handicapSummary().index;
   const handicapChanges = handicapChangesByRound(handicapRecord);
@@ -1093,14 +1252,20 @@ function renderRounds() {
       const roundHandicapIndex = handicapChanges[round.id]?.after ?? currentHandicapIndex;
       const hasHandicapIndex = Number.isFinite(roundHandicapIndex);
       const courseHandicap = hasHandicapIndex ? playingHandicap(round.course, roundHandicapIndex) : null;
-      const netScore = hasHandicapIndex ? round.score - courseHandicap : "--";
+      const netScore = round.isComplete && hasHandicapIndex ? round.score - courseHandicap : "--";
       const differentialValue = Number.isFinite(round.differential) ? round.differential.toFixed(1) : "--";
       const handicapStatus = statusByRound[round.id] || handicapEligibility(round, round.course);
       const stats = roundScoringStats(round);
+      const detailToPar = round.isComplete ? formatToPar(round.toPar) : round.holesPlayed === 9 ? formatToPar(round.postingToPar) : formatToPar(round.partialToPar);
+      const detailGross = round.isComplete
+        ? `${round.score}/${netScore}`
+        : round.holesPlayed === 9
+          ? `${round.partialScore} actual · ${round.postingScore} est.`
+          : `${Number.isFinite(round.partialScore) ? round.partialScore : "--"} / draft`;
       const location = [round.course.city, round.course.state].filter(Boolean).join(", ");
       const courseMeta = [
         round.course.tee ? escapeHtml(round.course.tee) : "",
-        "18 holes",
+        round.isComplete ? "18 holes" : `${round.holesPlayed}/18 holes`,
         location ? escapeHtml(location) : ""
       ].filter(Boolean).join(" · ");
       return `
@@ -1118,11 +1283,7 @@ function renderRounds() {
                 <span>${escapeHtml(handicapStatus.reason)}</span>
               </div>
             </div>
-            <div class="round-score-tile" aria-label="Round score">
-              <span>To par</span>
-                  <strong>${formatToPar(round.toPar)}</strong>
-                  <small>Gross ${round.score}</small>
-            </div>
+            ${renderRoundSummaryScoreTile(round)}
             <div class="round-quick-stats" aria-label="Round scoring mix">
               ${roundMiniStat("Birdies+", stats.birdiesBetter)}
               ${roundMiniStat("Pars", stats.pars)}
@@ -1136,11 +1297,11 @@ function renderRounds() {
               <div class="round-detail-topline">
                 <div>
                   <span>To par</span>
-                  <strong>${formatToPar(round.toPar)}</strong>
+                  <strong>${detailToPar}</strong>
                 </div>
                 <div>
-                  <span>Gross/Net</span>
-                  <strong>${round.score}/${netScore}</strong>
+                  <span>${round.isComplete ? "Gross/Net" : round.holesPlayed === 9 ? "Actual/Est." : "Progress"}</span>
+                  <strong>${detailGross}</strong>
                 </div>
               </div>
               ${renderRoundCard(round, currentHandicapIndex)}
@@ -1167,7 +1328,7 @@ function renderRounds() {
               ${metric("Course hcp", Number.isFinite(courseHandicap) ? formatCourseHandicap(courseHandicap) : "--", hasHandicapIndex ? `<small>Index ${roundHandicapIndex.toFixed(1)}</small>` : "")}
               ${metric("Differential", differentialValue, renderHandicapChange(handicapChanges[round.id]))}
               ${metric("Rating/Slope", `${round.course.rating}/${round.course.slope}`)}
-              ${metric("Course par", totalPar(round.course))}
+              ${metric(round.isComplete ? "Course par" : round.holesPlayed === 9 ? "9-hole posting" : "Saved", round.isComplete ? totalPar(round.course) : round.holesPlayed === 9 ? "Uses par for unplayed holes" : `${round.holesPlayed}/18`)}
             </div>
 
             <div class="card-actions">
@@ -1766,6 +1927,52 @@ function renderAnalyticsParBreakdown(rounds) {
   `;
 }
 
+function renderAnalyticsInsights(items = []) {
+  if (!analyticsInsights) return;
+  const visible = items.filter((item) => item && item.value);
+  analyticsInsights.innerHTML = visible.length
+    ? visible.map((item) => `
+      <div class="insight-card">
+        <span>${escapeHtml(item.label)}</span>
+        <strong>${escapeHtml(item.value)}</strong>
+        ${item.detail ? `<small>${escapeHtml(item.detail)}</small>` : ""}
+      </div>
+    `).join("")
+    : "";
+}
+
+function bestParTypeLabel(rounds) {
+  const stats = parAverageStats(rounds).filter((entry) => entry.count > 0 && Number.isFinite(entry.toPar));
+  if (!stats.length) return null;
+  const best = stats.sort((a, b) => a.toPar - b.toPar)[0];
+  return {
+    value: `Par ${best.par}`,
+    detail: `${formatToPar(best.toPar)} avg to par`
+  };
+}
+
+function hardestHoleInsight(rounds, course) {
+  if (!course || !rounds.length) return null;
+  const holes = course.holes.map((hole) => {
+    const scores = rounds
+      .map((round) => round.holes.find((roundHole) => roundHole.hole === hole.hole)?.strokes)
+      .map(Number)
+      .filter(Number.isFinite);
+    const average = scores.length ? scores.reduce((sum, score) => sum + score, 0) / scores.length : null;
+    return {
+      hole: hole.hole,
+      average,
+      toPar: Number.isFinite(average) ? round1(average - Number(hole.par)) : null
+    };
+  }).filter((hole) => Number.isFinite(hole.toPar));
+  if (!holes.length) return null;
+  const hardest = holes.sort((a, b) => b.toPar - a.toPar)[0];
+  return {
+    value: `Hole ${hardest.hole}`,
+    detail: `${formatToPar(hardest.toPar)} avg to par`
+  };
+}
+
 function renderAnalyticsOverview(record) {
   const stats = roundCollectionStats(record);
   const summary = handicapSummary();
@@ -1783,6 +1990,12 @@ function renderAnalyticsOverview(record) {
     metric("Index", summary.index === null ? "--" : summary.index.toFixed(1)),
     metric("Latest change", latestHandicapChangeLabel(latestChange))
   ].join("");
+  const bestParType = bestParTypeLabel(record);
+  renderAnalyticsInsights([
+    favoriteCourseName(record) ? { label: "Favorite course", value: favoriteCourseName(record), detail: "Most rounds played" } : null,
+    bestParType ? { label: "Best par type", ...bestParType } : null,
+    stats.best ? { label: "Best round", value: String(stats.best), detail: stats.averageScore ? `${stats.averageScore.toFixed(1)} average` : "" } : null
+  ]);
 
   analyticsDrillList.innerHTML = playedCourseNames()
     .map((name) => {
@@ -1830,6 +2043,11 @@ function renderAnalyticsCourse(record, courseName) {
     metric("Worst", Number.isFinite(stats.worst) ? stats.worst : "--"),
     metric("Avg to par", Number.isFinite(stats.averageToPar) ? formatToPar(stats.averageToPar) : "--")
   ].join("");
+  const bestParType = bestParTypeLabel(rounds);
+  renderAnalyticsInsights([
+    bestParType ? { label: "Best par type", ...bestParType } : null,
+    stats.best ? { label: "Best score", value: String(stats.best), detail: Number.isFinite(stats.averageScore) ? `${stats.averageScore.toFixed(1)} average` : "" } : null
+  ]);
 
   analyticsDrillList.innerHTML = tees
     .map((course) => {
@@ -1882,6 +2100,12 @@ function renderAnalyticsTee(record, teeId) {
     metric("Worst", Number.isFinite(stats.worst) ? stats.worst : "--"),
     metric("Course hcp", Number.isFinite(courseHandicap) ? formatCourseHandicap(courseHandicap) : "--")
   ].join("");
+  const bestParType = bestParTypeLabel(rounds);
+  const hardestHole = hardestHoleInsight(rounds, course);
+  renderAnalyticsInsights([
+    bestParType ? { label: "Best par type", ...bestParType } : null,
+    hardestHole ? { label: "Hardest hole", ...hardestHole } : null
+  ]);
   renderAnalyticsParBreakdown(rounds);
   analyticsDrillList.innerHTML = "";
   holeAnalyticsRows.innerHTML = course.holes.map((hole) => {
@@ -1947,7 +2171,7 @@ function renderRoundScoringUI() {
   document.querySelector("#roundHoleYards").textContent = present(active?.yards);
   document.querySelector("#roundHolePar").textContent = present(active?.par);
   document.querySelector("#roundHoleHandicap").textContent = present(active?.handicap);
-  document.querySelector("#roundTotalScore").textContent = completed.length ? `${completed.length} of 18` : "No holes scored";
+  document.querySelector("#roundTotalScore").textContent = completed.length ? `${completed.length}/18 · ${total}` : "No holes scored";
 
   strokeButtons.innerHTML = scoreOptionsForHole(active).map((score) => {
     const relative = active ? score - Number(active.par) : 0;
@@ -1994,15 +2218,18 @@ function setActiveHoleScore(score) {
 
 function validateRoundCard() {
   if (!roundHoleState.holes.length) return "Choose a course before saving.";
-  const missing = roundHoleState.holes.find((hole) => !hasHoleScore(hole));
-  if (missing) return `Hole ${missing.hole} needs a score.`;
-  const invalid = roundHoleState.holes.find((hole) => !isValidHoleScore(hole));
+  const scored = roundHoleState.holes.filter(hasHoleScore);
+  if (!scored.length) return "Score at least one hole before saving.";
+  const invalid = scored.find((hole) => !isValidHoleScore(hole));
   return invalid ? `Hole ${invalid.hole} needs a score from ${scoreOptionsForHole(invalid)[0]} to ${scoreOptionsForHole(invalid).at(-1)}.` : "";
 }
 
 function roundPayloadFromDialog(existingRound = null) {
   const formData = new FormData(roundForm);
-  const holes = roundHoleState.holes.map((hole) => ({ ...hole, strokes: Number(hole.strokes) }));
+  const holes = roundHoleState.holes.map((hole) => ({
+    ...hole,
+    strokes: hasHoleScore(hole) ? Number(hole.strokes) : null
+  }));
   return {
     id: existingRound?.id || uid(),
     createdAt: existingRound?.createdAt || Date.now(),
@@ -2010,7 +2237,7 @@ function roundPayloadFromDialog(existingRound = null) {
     date: formData.get("date"),
     courseId: formData.get("courseId"),
     pcc: numeric(formData, "pcc") || 0,
-    score: holes.reduce((sum, hole) => sum + hole.strokes, 0),
+    score: roundScore({ holes }),
     holes
   };
 }
@@ -2021,6 +2248,11 @@ function setRoundAutoSaveStatus(message) {
 
 function scheduleRoundEditAutoSave() {
   if (!editingRoundId || !hasRemoteSession()) return;
+  if (!navigator.onLine) {
+    setRoundAutoSaveStatus("Connect to save");
+    setSyncStatus("Offline");
+    return;
+  }
   clearTimeout(roundAutoSaveTimer);
   setRoundAutoSaveStatus("Unsaved changes");
   roundAutoSaveTimer = setTimeout(async () => {
@@ -2037,9 +2269,11 @@ function scheduleRoundEditAutoSave() {
       state.rounds = state.rounds.map((item) => item.id === existingRound.id ? round : item);
       setRoundAutoSaveStatus("Saved");
       setSyncStatus("Saved");
+      showActionStatus("Round changes saved.");
     } catch {
       setRoundAutoSaveStatus("Save failed");
       setSyncStatus("Round sync failed");
+      showActionStatus("Round changes were not saved.", "error");
     }
   }, 900);
 }
@@ -2168,7 +2402,6 @@ function setCourseFormOpen(isOpen) {
   if (isOpen) {
     renderExistingCourseSelect();
     updateCourseFormMode();
-    courseForm.querySelector("input[name='name']")?.focus();
   }
 }
 
@@ -2179,6 +2412,29 @@ function renderProfile() {
   summary.textContent = name
     ? `${name}'s private ParTrack profile`
     : "Set up your player profile to personalize this device.";
+}
+
+function renderSettingsControls() {
+  if (preferredCourseSelect) {
+    const names = courseNames();
+    const storedName = storedPreferredCourseName();
+    preferredCourseSelect.innerHTML = [
+      `<option value="">No default</option>`,
+      ...names.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`)
+    ].join("");
+    if (names.includes(storedName)) preferredCourseSelect.value = storedName;
+  }
+
+  if (preferredTeeSelect) {
+    const name = preferredCourseSelect?.value || storedPreferredCourseName();
+    const tees = name ? coursesByName(name) : [];
+    const storedTee = storedPreferredTeeId();
+    preferredTeeSelect.innerHTML = [
+      `<option value="">First tee listed</option>`,
+      ...tees.map((course) => `<option value="${course.id}">${escapeHtml(course.tee)}</option>`)
+    ].join("");
+    if (tees.some((course) => course.id === storedTee)) preferredTeeSelect.value = storedTee;
+  }
 }
 
 function openSetupDialog() {
@@ -2204,7 +2460,11 @@ function openRoundDialog(round = null, preferredCourseId = null) {
 
   clearTimeout(roundAutoSaveTimer);
   setRoundAutoSaveStatus(round ? "Edits auto-save" : "Saves when you add the round");
+  const storedTee = storedPreferredTeeId();
+  const storedCourse = storedPreferredCourseName();
   if (preferredCourseId) preferredRoundCourseId = preferredCourseId;
+  else if (!round && storedTee && courseById(storedTee)) preferredRoundCourseId = storedTee;
+  else if (!round && storedCourse) preferredRoundCourseId = coursesByName(storedCourse)[0]?.id || null;
   roundForm.reset();
   setRoundDialogMode(round);
   roundForm.elements.date.value = round?.date || todayIso();
@@ -2299,6 +2559,7 @@ function saveProfile(formData, setupComplete = true) {
     setupComplete
   };
   renderProfile();
+  showActionStatus("Profile saved.");
   if (hasRemoteSession()) {
     supabase
       .from("profiles")
@@ -2347,6 +2608,7 @@ authForm?.addEventListener("submit", async (event) => {
   await ensureRemoteProfile(displayName);
   await loadRemoteData();
   setSignedInUi(true);
+  showActionStatus("Signed in. Your account is synced.");
   render();
   route();
 });
@@ -2364,11 +2626,25 @@ themeSelect?.addEventListener("change", () => {
   const theme = themeSelect.value;
   localStorage.setItem(themeStorageKey, theme);
   applyTheme(theme);
+  showActionStatus("Theme saved.");
 });
 
 handicapBasisSelect?.addEventListener("change", () => {
   localStorage.setItem(handicapBasisStorageKey, handicapBasisSelect.value);
   applyHandicapBasis(handicapBasisSelect.value);
+  showActionStatus("Handicap basis saved.");
+});
+
+preferredCourseSelect?.addEventListener("change", () => {
+  localStorage.setItem(preferredCourseStorageKey, preferredCourseSelect.value);
+  localStorage.removeItem(preferredTeeStorageKey);
+  renderSettingsControls();
+  showActionStatus(preferredCourseSelect.value ? "Default course saved." : "Default course cleared.");
+});
+
+preferredTeeSelect?.addEventListener("change", () => {
+  localStorage.setItem(preferredTeeStorageKey, preferredTeeSelect.value);
+  showActionStatus(preferredTeeSelect.value ? "Default tee saved." : "Default tee cleared.");
 });
 
 links.forEach((link) => {
@@ -2452,6 +2728,11 @@ roundForm.addEventListener("submit", async (event) => {
       : "Sign in to save rounds.";
     return;
   }
+  if (!navigator.onLine) {
+    setRoundAutoSaveStatus("Connect to save");
+    showActionStatus("You are offline. Reconnect before saving this round.", "error");
+    return;
+  }
   const roundError = validateRoundCard();
   if (roundError) {
     document.querySelector("#roundTotalScore").textContent = roundError;
@@ -2465,6 +2746,7 @@ roundForm.addEventListener("submit", async (event) => {
       saveButton.textContent = "Saving...";
     }
     setSyncStatus("Saving round...");
+    setRoundAutoSaveStatus("Saving...");
     const saved = await saveRemoteRound(round, existingRound);
     round.id = saved.id;
     round.backendCourseId = saved.course_id;
@@ -2473,9 +2755,19 @@ roundForm.addEventListener("submit", async (event) => {
     else state.rounds.push(round);
     await loadRemoteData();
     setSyncStatus("Synced");
+    setRoundAutoSaveStatus("Saved");
+    const holesPlayed = scoredHoleCount(round);
+    const saveMessage = holesPlayed === 18
+      ? "Round saved."
+      : holesPlayed === 9
+        ? "9-hole round saved for your handicap estimate."
+        : "Round progress saved.";
+    showActionStatus(existingRound ? "Round changes saved." : saveMessage);
   } catch (error) {
     document.querySelector("#roundTotalScore").textContent = error.message || "Could not save round.";
     setSyncStatus("Round sync failed");
+    setRoundAutoSaveStatus("Save failed");
+    showActionStatus("Round was not saved. Check your connection and try again.", "error");
     if (saveButton) {
       saveButton.disabled = false;
       saveButton.textContent = originalButtonText;
@@ -2504,7 +2796,20 @@ courseForm.addEventListener("submit", async (event) => {
     holeTotals.textContent = "Sign in to save courses.";
     return;
   }
+  if (!navigator.onLine) {
+    holeTotals.textContent = "Connect to save this course.";
+    showActionStatus("You are offline. Reconnect before saving this course.", "error");
+    return;
+  }
+  const saveButton = courseForm.querySelector("button[type='submit']");
+  const originalButtonText = saveButton?.textContent || "Save course";
   try {
+    if (saveButton) {
+      saveButton.disabled = true;
+      saveButton.textContent = "Saving...";
+    }
+    setSyncStatus("Saving course...");
+    holeTotals.textContent = "Saving course...";
     const remoteCourse = await saveRemoteCourse(formData, holes);
     preferredRoundCourseId = remoteCourse.id;
     await loadRemoteData();
@@ -2515,10 +2820,17 @@ courseForm.addEventListener("submit", async (event) => {
     updateCourseFormMode();
     setCourseFormOpen(false);
     setSyncStatus("Synced");
+    showActionStatus("Course saved and ready to use.");
     render();
   } catch (error) {
     holeTotals.textContent = error.message || "Could not save course.";
     setSyncStatus("Course sync failed");
+    showActionStatus("Course was not saved. Check the form and try again.", "error");
+  } finally {
+    if (saveButton) {
+      saveButton.disabled = false;
+      saveButton.textContent = originalButtonText;
+    }
   }
 });
 
@@ -2556,6 +2868,10 @@ document.addEventListener("click", async (event) => {
     const course = courseById(publishCourseButton.dataset.publishCourse);
     if (!course?.backendCourseId) return;
     if (course?.name) openCourseGroups.add(course.name);
+    if (!navigator.onLine) {
+      showActionStatus("You are offline. Reconnect before publishing this course.", "error");
+      return;
+    }
     publishCourseButton.disabled = true;
     setSyncStatus("Publishing...");
     const { error } = await supabase
@@ -2570,6 +2886,7 @@ document.addEventListener("click", async (event) => {
     }
     await loadRemoteData();
     setSyncStatus("Published as unverified");
+    showActionStatus("Course shared for the community.");
     render();
   }
   if (verifyCourseButton) {
@@ -2578,6 +2895,10 @@ document.addEventListener("click", async (event) => {
     const course = courseById(verifyCourseButton.dataset.verifyCourse);
     if (!course?.backendCourseId) return;
     if (course?.name) openCourseGroups.add(course.name);
+    if (!navigator.onLine) {
+      showActionStatus("You are offline. Reconnect before verifying this course.", "error");
+      return;
+    }
     verifyCourseButton.disabled = true;
     verifyCourseButton.textContent = "Verifying...";
     setSyncStatus("Verifying...");
@@ -2596,6 +2917,7 @@ document.addEventListener("click", async (event) => {
     render();
     await loadRemoteData();
     setSyncStatus("Verified and published");
+    showActionStatus("Course verified and published.");
     render();
   }
   if (reportCourseButton) {
@@ -2644,7 +2966,12 @@ document.addEventListener("click", async (event) => {
       alert("Open the hosted app and sign in to delete synced rounds.");
       return;
     }
+    if (!navigator.onLine) {
+      showActionStatus("You are offline. Reconnect before deleting this round.", "error");
+      return;
+    }
     roundButton.disabled = true;
+    roundButton.textContent = "Deleting...";
     setSyncStatus("Deleting round...");
     const { data, error } = await supabase
       .from("rounds")
@@ -2655,12 +2982,16 @@ document.addEventListener("click", async (event) => {
       .maybeSingle();
     if (error || !data) {
       roundButton.disabled = false;
+      roundButton.textContent = "Delete";
       setSyncStatus("Delete failed");
       alert(error?.message || "That round could not be deleted. It may already be gone or may not belong to this account.");
       return;
     }
+    state.rounds = state.rounds.filter((round) => round.id !== roundButton.dataset.deleteRound);
+    render();
     await loadRemoteData();
     setSyncStatus("Synced");
+    showActionStatus("Round deleted.");
     render();
     return;
   }
@@ -2676,7 +3007,12 @@ document.addEventListener("click", async (event) => {
       alert("Open the hosted app and sign in to delete synced courses.");
       return;
     }
+    if (!navigator.onLine) {
+      showActionStatus("You are offline. Reconnect before deleting this course.", "error");
+      return;
+    }
     courseButton.disabled = true;
+    courseButton.textContent = "Deleting...";
     setSyncStatus("Deleting course...");
     const { data, error } = await supabase
       .from("courses")
@@ -2686,12 +3022,17 @@ document.addEventListener("click", async (event) => {
       .maybeSingle();
     if (error || !data) {
       courseButton.disabled = false;
+      courseButton.textContent = "Delete";
       setSyncStatus("Delete failed");
       alert(error?.message || "That course could not be deleted.");
       return;
     }
+    state.courses = state.courses.filter((course) => course.backendCourseId !== data.id);
+    state.rounds = state.rounds.filter((round) => round.backendCourseId !== data.id);
+    render();
     await loadRemoteData();
     setSyncStatus("Synced");
+    showActionStatus("Course deleted.");
     render();
     return;
   }
@@ -2726,11 +3067,20 @@ window.addEventListener("resize", () => drawTrend(handicapSummary().recent));
 window.addEventListener("online", async () => {
   if (!hasRemoteSession()) return;
   try {
+    setSyncStatus("Checking...");
     await loadRemoteData();
+    setSyncStatus("Synced");
+    showActionStatus("Back online. Your account is up to date.");
     render();
   } catch {
     setSyncStatus("Online, sync failed");
+    showActionStatus("Back online, but refresh failed. Try again in a moment.", "error");
   }
+});
+
+window.addEventListener("offline", () => {
+  setSyncStatus("Offline");
+  showActionStatus("You are offline. Changes need a connection to save.", "warning");
 });
 
 if ("serviceWorker" in navigator) {
