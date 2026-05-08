@@ -2,3 +2,13 @@
 node_modules/
 dist/
 .env
+logo-redesigns.html
+assets/fresh-*.svg
+assets/graph-*.svg
+assets/icon-concept-*.svg
+assets/icon-png-*.svg
+assets/icon-scratch-*.svg
+assets/logo-concept-*.svg
+assets/logo-png-*.svg
+assets/logo-scratch-*.svg
+assets/nop-*.svg

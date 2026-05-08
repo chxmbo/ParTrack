@@ -5,7 +5,8 @@
   "scripts": {
     "generate-icons": "node scripts/generate-icons.js",
     "prebuild": "node scripts/generate-icons.js",
-    "build": "node scripts/build.js"
+    "build": "node scripts/build.js",
+    "check": "node --check app.js && node --check sw.js && node scripts/build.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.43.4"

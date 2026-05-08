@@ -1,11 +1,10 @@
-const CACHE_NAME = "partrack-supabase-v65";
+const CACHE_NAME = "partrack-supabase-v66";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
   "./env-config.js",
-  "./public/",
   "./public/index.html",
   "./public/manifest.webmanifest",
   "./public/icons/icon-192.png",
@@ -16,6 +15,11 @@ const APP_SHELL = [
 
 const cacheUrl = (path) => new URL(path, self.registration.scope).toString();
 const INDEX_URL = cacheUrl("./index.html");
+const STATIC_EXTENSIONS = /\.(?:css|js|svg|png|jpg|jpeg|webp|ico|webmanifest)$/i;
+
+function isSameOrigin(request) {
+  return new URL(request.url).origin === self.location.origin;
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL.map(cacheUrl))));
@@ -33,6 +37,8 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  if (!isSameOrigin(event.request)) return;
+
   if (event.request.mode === "navigate") {
     event.respondWith(
       fetch(event.request)
@@ -45,6 +51,8 @@ self.addEventListener("fetch", (event) => {
     );
     return;
   }
+
+  if (!STATIC_EXTENSIONS.test(new URL(event.request.url).pathname)) return;
 
   event.respondWith(
     caches.match(event.request).then((cached) => {

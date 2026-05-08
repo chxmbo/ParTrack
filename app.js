@@ -769,6 +769,24 @@ function scoringRecord() {
     .filter((round) => handicapEligibility(round, round.course).eligible && Number.isFinite(round.differential));
 }
 
+function postedRoundRecord() {
+  return scoringRecord();
+}
+
+function displayScoreForRound(round) {
+  if (Number.isFinite(round.score)) return round.score;
+  if (Number.isFinite(round.postingScore)) return round.postingScore;
+  if (Number.isFinite(round.partialScore)) return round.partialScore;
+  return null;
+}
+
+function displayToParForRound(round) {
+  if (Number.isFinite(round.toPar)) return round.toPar;
+  if (Number.isFinite(round.postingToPar)) return round.postingToPar;
+  if (Number.isFinite(round.partialToPar)) return round.partialToPar;
+  return null;
+}
+
 function handicapStatusByRound(rounds) {
   const includedIds = new Set(scoringRecord().slice(0, 20).map((round) => round.id));
   return Object.fromEntries(rounds.map((round) => {
@@ -1571,7 +1589,7 @@ function renderCourses() {
   const countTitle = document.querySelector("#courseCountTitle");
   const catalogPanel = document.querySelector("#courseCatalogPanel");
   const modeTabs = document.querySelectorAll("[data-course-mode]");
-  const myCourseIds = new Set(completedRoundRecord().map((round) => round.courseId));
+  const myCourseIds = new Set(postedRoundRecord().map((round) => round.courseId));
   const isMyCourse = (course) => myCourseIds.has(course.id);
   const groups = courseGroups()
     .map((group) => ({
@@ -1910,7 +1928,7 @@ function startRoundCard(course = selectedRoundCourse()) {
 
 function renderAnalytics() {
   if (!analyticsSummary || !holeAnalyticsRows || !analyticsNav || !analyticsDrillList || !analyticsHoleWrap) return;
-  const record = completedRoundRecord();
+  const record = postedRoundRecord();
   if (!record.length) {
     if (analyticsLocked) {
       analyticsLocked.hidden = false;
@@ -1918,11 +1936,11 @@ function renderAnalytics() {
         <div class="analytics-lock-icon" aria-hidden="true">◎</div>
         <p class="eyebrow">Locked until your first round</p>
         <h2>Score a round to unlock analytics</h2>
-        <p>Hole-by-hole scoring patterns, averages, bests, worsts, and course breakdowns will appear here after you save one completed round.</p>
+        <p>Hole-by-hole scoring patterns, averages, bests, worsts, and course breakdowns will appear here after you save at least 9 holes.</p>
         <div class="analytics-lock-steps">
           <span>1. Choose or add a course</span>
           <span>2. Tap Add round</span>
-          <span>3. Save all 18 hole scores</span>
+          <span>3. Save 9 or 18 hole scores</span>
         </div>
       `;
     }
@@ -1964,8 +1982,8 @@ function renderAnalytics() {
 }
 
 function roundCollectionStats(rounds) {
-  const scores = rounds.map((round) => Number(round.score)).filter(Number.isFinite);
-  const toPars = rounds.map((round) => Number(round.toPar)).filter(Number.isFinite);
+  const scores = rounds.map(displayScoreForRound).map(Number).filter(Number.isFinite);
+  const toPars = rounds.map(displayToParForRound).map(Number).filter(Number.isFinite);
   const average = (values) => values.length ? round1(values.reduce((sum, value) => sum + value, 0) / values.length) : null;
   return {
     rounds: rounds.length,
@@ -2249,13 +2267,13 @@ function renderAnalyticsTeeSelect() {
 }
 
 function playedCourseNames() {
-  const names = new Set(completedRoundRecord().filter((round) => Array.isArray(round.holes)).map((round) => round.course.name));
+  const names = new Set(postedRoundRecord().filter((round) => Array.isArray(round.holes)).map((round) => round.course.name));
   return [...names].sort((a, b) => a.localeCompare(b));
 }
 
 function playedTeesByName(name) {
   const tees = new Map();
-  completedRoundRecord()
+  postedRoundRecord()
     .filter((round) => Array.isArray(round.holes) && round.course.name === name)
     .forEach((round) => tees.set(round.course.id, round.course));
   return [...tees.values()].sort((a, b) => a.tee.localeCompare(b.tee));
@@ -2665,8 +2683,13 @@ async function initializeAuth() {
   remoteSession = data.session;
   if (!remoteSession) return;
   setSignedInUi(true);
-  await ensureRemoteProfile();
-  await loadRemoteData();
+  try {
+    await ensureRemoteProfile();
+    await loadRemoteData();
+  } catch (error) {
+    setSyncStatus("Refresh failed");
+    showActionStatus(error.message || "Could not refresh your account. Try Refresh in Settings.", "error");
+  }
 }
 
 function saveProfile(formData, setupComplete = true) {
