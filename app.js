@@ -3044,22 +3044,22 @@ document.addEventListener("click", async (event) => {
     roundButton.disabled = true;
     roundButton.textContent = "Deleting...";
     setSyncStatus("Deleting round...");
-    const { data, error } = await supabase
+    const roundId = roundButton.dataset.deleteRound;
+    const previousRounds = state.rounds;
+    state.rounds = state.rounds.filter((round) => round.id !== roundId);
+    render();
+    const { error } = await supabase
       .from("rounds")
       .delete()
-      .eq("id", roundButton.dataset.deleteRound)
-      .eq("user_id", remoteUserId())
-      .select("id")
-      .maybeSingle();
-    if (error || !data) {
-      roundButton.disabled = false;
-      roundButton.textContent = "Delete";
+      .eq("id", roundId)
+      .eq("user_id", remoteUserId());
+    if (error) {
+      state.rounds = previousRounds;
       setSyncStatus("Delete failed");
-      alert(error?.message || "That round could not be deleted. It may already be gone or may not belong to this account.");
+      showActionStatus("Round was not deleted. Try again in a moment.", "error");
+      render();
       return;
     }
-    state.rounds = state.rounds.filter((round) => round.id !== roundButton.dataset.deleteRound);
-    render();
     await loadRemoteData();
     setSyncStatus("Synced");
     showActionStatus("Round deleted.");
