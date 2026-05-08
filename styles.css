@@ -2728,10 +2728,6 @@ dialog form {
     grid-template-columns: minmax(0, 1fr) auto auto 28px;
   }
 
-  .active-hole-card {
-    grid-template-columns: 42px 1fr 1fr 1fr 1fr 42px;
-  }
-
   .active-hole-card h3 {
     font-size: 2.3rem;
   }
@@ -2789,14 +2785,54 @@ dialog form {
   }
 
   dialog {
-    width: 100vw;
+    width: 100dvw;
     max-width: none;
+    max-height: 100dvh;
     min-height: 100dvh;
     border-radius: 0;
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
   }
 
   dialog form {
+    width: 100%;
+    max-width: 100%;
     padding: 18px 14px calc(22px + env(safe-area-inset-bottom));
+    overflow-x: hidden;
+  }
+
+  .score-entry,
+  .selected-course,
+  .round-setup,
+  .score-picker,
+  .stroke-buttons,
+  .round-hole-grid,
+  .dialog-actions {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .active-hole-card {
+    grid-template-columns: 36px minmax(46px, 0.9fr) repeat(3, minmax(38px, 1fr)) 36px;
+    gap: 4px;
+    max-width: 100%;
+    min-width: 0;
+    padding: 8px;
+    overflow: hidden;
+  }
+
+  .active-hole-card > * {
+    min-width: 0;
+  }
+
+  .active-hole-card .eyebrow {
+    font-size: 0.58rem;
+  }
+
+  .active-hole-card .icon-button {
+    width: 36px;
+    min-height: 36px;
   }
 
   .scorecard-mini {
