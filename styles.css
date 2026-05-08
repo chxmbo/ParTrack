@@ -2491,6 +2491,14 @@ dialog form {
   gap: 12px;
 }
 
+.score-picker-head > div {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
 .score-picker-head h3 {
   margin: 0;
   font-size: 1.45rem;
@@ -2499,6 +2507,18 @@ dialog form {
 .score-picker-head strong {
   color: var(--green-dark);
   font-size: 1.2rem;
+}
+
+.score-clear-button {
+  min-height: 34px;
+  padding: 0 11px;
+  box-shadow: none;
+}
+
+.score-clear-button:disabled {
+  cursor: default;
+  opacity: 0.45;
+  transform: none;
 }
 
 .stroke-buttons {
@@ -2936,6 +2956,16 @@ dialog form {
 
   .field-resume-card .secondary-action {
     justify-self: start;
+  }
+
+  .score-picker-head {
+    align-items: flex-start;
+  }
+
+  .score-picker-head > div {
+    align-items: flex-end;
+    flex-direction: column;
+    gap: 6px;
   }
 
   .scorecard-row {

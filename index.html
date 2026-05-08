@@ -14,8 +14,8 @@
     <link rel="manifest" href="./public/manifest.webmanifest" />
     <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" sizes="192x192" href="./public/icons/icon-192.png" />
-    <link rel="stylesheet" href="./styles.css?v=62" />
-    <script src="./env-config.js?v=62"></script>
+    <link rel="stylesheet" href="./styles.css?v=63" />
+    <script src="./env-config.js?v=63"></script>
   </head>
   <body>
     <section id="authScreen" class="auth-screen" hidden>
@@ -434,7 +434,10 @@
           <div class="score-picker" aria-label="Score">
             <div class="score-picker-head">
               <h3>Score</h3>
-              <strong id="roundTotalScore">--</strong>
+              <div>
+                <button class="secondary-action score-clear-button" type="button" data-clear-hole disabled>Clear</button>
+                <strong id="roundTotalScore">--</strong>
+              </div>
             </div>
             <div id="strokeButtons" class="stroke-buttons"></div>
           </div>
@@ -472,6 +475,6 @@
       </form>
     </dialog>
 
-    <script type="module" src="./app.js?v=62"></script>
+    <script type="module" src="./app.js?v=63"></script>
   </body>
 </html>

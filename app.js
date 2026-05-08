@@ -2231,11 +2231,20 @@ function renderRoundScoringUI() {
   const active = roundHoleState.holes[roundHoleState.activeHole - 1];
   const completed = roundHoleState.holes.filter(hasHoleScore);
   const total = completed.reduce((sum, hole) => sum + Number(hole.strokes), 0);
+  const saveButton = roundForm.querySelector("button[type='submit']");
+  const clearButton = roundForm.querySelector("[data-clear-hole]");
   document.querySelector("#roundHoleNumber").textContent = active?.hole || "--";
   document.querySelector("#roundHoleYards").textContent = present(active?.yards);
   document.querySelector("#roundHolePar").textContent = present(active?.par);
   document.querySelector("#roundHoleHandicap").textContent = present(active?.handicap);
   document.querySelector("#roundTotalScore").textContent = completed.length ? `${completed.length}/18 · ${total}` : "No holes scored";
+  if (clearButton) clearButton.disabled = !hasHoleScore(active);
+  if (saveButton) {
+    if (!completed.length) saveButton.textContent = editingRoundId ? "Save changes" : "Save round";
+    else if (completed.length === 9) saveButton.textContent = "Save 9-hole score";
+    else if (completed.length === 18) saveButton.textContent = editingRoundId ? "Save changes" : "Finish round";
+    else saveButton.textContent = "Save progress";
+  }
 
   strokeButtons.innerHTML = scoreOptionsForHole(active).map((score) => {
     const relative = active ? score - Number(active.par) : 0;
@@ -2276,6 +2285,14 @@ function setActiveHoleScore(score) {
   active.strokes = score;
   const nextBlank = roundHoleState.holes.find((hole) => !hasHoleScore(hole) && hole.hole > roundHoleState.activeHole);
   if (nextBlank) roundHoleState.activeHole = nextBlank.hole;
+  renderRoundScoringUI();
+  scheduleRoundEditAutoSave();
+}
+
+function clearActiveHoleScore() {
+  const active = roundHoleState.holes[roundHoleState.activeHole - 1];
+  if (!active || !hasHoleScore(active)) return;
+  active.strokes = null;
   renderRoundScoringUI();
   scheduleRoundEditAutoSave();
 }
@@ -2512,7 +2529,7 @@ function setRoundDialogMode(round = null) {
   const title = roundForm.querySelector(".dialog-header h2");
   const saveButton = roundForm.querySelector("button[type='submit']");
   if (title) title.textContent = editingRoundId ? "Edit round" : "Add round";
-  if (saveButton) saveButton.textContent = editingRoundId ? "Save changes" : "Add round";
+  if (saveButton) saveButton.textContent = editingRoundId ? "Save changes" : "Save round";
 }
 
 function openRoundDialog(round = null, preferredCourseId = null) {
@@ -2911,10 +2928,12 @@ document.addEventListener("click", async (event) => {
   const analyticsTeeButton = event.target.closest("[data-analytics-tee]");
   const analyticsBackButton = event.target.closest("[data-analytics-back]");
   const strokeButton = event.target.closest("[data-stroke]");
+  const clearHoleButton = event.target.closest("[data-clear-hole]");
   const roundHoleButton = event.target.closest("[data-round-hole]");
   const prevHoleButton = event.target.closest("[data-prev-hole]");
   const nextHoleButton = event.target.closest("[data-next-hole]");
   if (strokeButton) setActiveHoleScore(Number(strokeButton.dataset.stroke));
+  if (clearHoleButton) clearActiveHoleScore();
   if (roundHoleButton) setActiveRoundHole(Number(roundHoleButton.dataset.roundHole));
   if (prevHoleButton) setActiveRoundHole(roundHoleState.activeHole - 1);
   if (nextHoleButton) setActiveRoundHole(roundHoleState.activeHole + 1);
