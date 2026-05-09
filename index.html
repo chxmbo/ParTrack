@@ -14,8 +14,8 @@
     <link rel="manifest" href="./public/manifest.webmanifest" />
     <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" sizes="192x192" href="./public/icons/icon-192.png" />
-    <link rel="stylesheet" href="./styles.css?v=66" />
-    <script src="./env-config.js?v=66"></script>
+    <link rel="stylesheet" href="./styles.css?v=67" />
+    <script src="./env-config.js?v=67"></script>
   </head>
   <body>
     <section id="authScreen" class="auth-screen" hidden>
@@ -27,9 +27,9 @@
             <span>Personal Handicap Tracker</span>
           </div>
         </div>
-        <p class="eyebrow">Private synced handicap tracker</p>
+        <p class="eyebrow">Private handicap tracker</p>
         <h2>Sign in</h2>
-        <p class="panel-note">Create an account to sync your courses, rounds, and handicap record across devices. Community-submitted courses can be used immediately and reviewed later.</p>
+        <p class="panel-note">Create an account to keep your courses, rounds, and handicap record available across devices. Community-submitted courses can be used immediately and reviewed later.</p>
         <label data-auth-name hidden>
           Display name
           <input name="displayName" autocomplete="name" />
@@ -94,7 +94,7 @@
           </div>
           <div class="topbar-meta" aria-label="App status">
             <span id="todayLabel"></span>
-            <span id="syncStatus">Sync ready</span>
+            <span id="syncStatus">Ready</span>
           </div>
           <button class="secondary-action logout-action" type="button" data-logout>Logout</button>
           <button class="primary-action" type="button" data-open-round>
@@ -334,8 +334,12 @@
                 </label>
               </div>
               <div class="settings-row">
-                <span>Sync status</span>
-                <strong id="settingsSyncLabel">Synced</strong>
+                <span>Save status</span>
+                <strong id="settingsSyncLabel">Ready</strong>
+              </div>
+              <div class="settings-row">
+                <span>Last saved</span>
+                <strong id="settingsSavedLabel">Not yet</strong>
               </div>
               <div class="settings-row settings-action-row">
                 <span>Account data</span>
@@ -366,7 +370,7 @@
             </article>
             <article class="panel settings-account-card">
               <p class="eyebrow">Account</p>
-              <p id="profileSummary">Sign in to load your synced ParTrack profile.</p>
+              <p id="profileSummary">Sign in to load your ParTrack profile.</p>
               <div class="button-row">
                 <button class="secondary-action" type="button" data-open-setup>Edit profile</button>
                 <button class="secondary-action" type="button" data-export>Export backup</button>
@@ -479,6 +483,6 @@
       </form>
     </dialog>
 
-    <script type="module" src="./app.js?v=66"></script>
+    <script type="module" src="./app.js?v=67"></script>
   </body>
 </html>

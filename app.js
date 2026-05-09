@@ -138,6 +138,7 @@ let selectedStatsCourseName = "";
 let selectedStatsTeeId = "";
 let preferredRoundCourseId = null;
 let roundAutoSaveTimer = null;
+let lastSavedAt = null;
 const openCourseGroups = new Set();
 const roundHoleState = {
   activeHole: 1,
@@ -190,12 +191,49 @@ function applyHandicapBasis(value = storedHandicapBasis()) {
   if (handicapBasisSelect) handicapBasisSelect.value = value;
 }
 
-function setSyncStatus(message) {
-  if (syncStatus) syncStatus.textContent = message;
+function formatSavedAt(date) {
+  if (!date) return "Not yet";
+  const elapsed = Date.now() - date.getTime();
+  if (elapsed < 45_000) return "Saved just now";
+  if (elapsed < 3_600_000) {
+    const minutes = Math.max(1, Math.floor(elapsed / 60_000));
+    return `Saved ${minutes}m ago`;
+  }
+  return `Saved ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+}
+
+function updateSaveStatusLabels(message = "") {
   const settingsSyncLabel = document.querySelector("#settingsSyncLabel");
+  const settingsSavedLabel = document.querySelector("#settingsSavedLabel");
+  if (syncStatus) syncStatus.textContent = message || formatSavedAt(lastSavedAt);
   if (settingsSyncLabel) {
-    if (/saving|syncing|deleting|publishing|verifying/i.test(message)) settingsSyncLabel.textContent = "Saving...";
-    else settingsSyncLabel.textContent = /failed|offline|sign in|required/i.test(message) ? "Needs attention" : "Saved";
+    if (/saving|syncing|checking|deleting|publishing|verifying|refreshing/i.test(message)) settingsSyncLabel.textContent = "Saving...";
+    else settingsSyncLabel.textContent = /failed|offline|sign in|required|unavailable/i.test(message) ? "Needs attention" : "Ready";
+  }
+  if (settingsSavedLabel) settingsSavedLabel.textContent = formatSavedAt(lastSavedAt);
+}
+
+function setSyncStatus(message) {
+  updateSaveStatusLabels(message);
+}
+
+function markSaved(message = "Saved just now") {
+  lastSavedAt = new Date();
+  updateSaveStatusLabels(message);
+}
+
+function setButtonBusy(button, isBusy, busyText = "Saving...") {
+  if (!button) return;
+  if (isBusy) {
+    if (!button.dataset.readyText) button.dataset.readyText = button.textContent;
+    button.disabled = true;
+    button.textContent = busyText;
+    return;
+  }
+  button.disabled = false;
+  if (button.dataset.readyText) {
+    button.textContent = button.dataset.readyText;
+    delete button.dataset.readyText;
   }
 }
 
@@ -344,19 +382,19 @@ function setSignedInUi(isSignedIn) {
   if (localPreviewMode && !supabaseConfigured) {
     authScreen.hidden = true;
     appShell.hidden = false;
-    setSyncStatus("Local preview");
+    setSyncStatus("Preview mode");
     return;
   }
   if (!supabase) {
     authScreen.hidden = false;
     appShell.hidden = true;
-    setAuthStatus("Account sync is not configured for this build.");
-    setSyncStatus("Sync unavailable");
+    setAuthStatus("Account sign-in is not configured for this build.");
+    setSyncStatus("Account unavailable");
     return;
   }
   authScreen.hidden = isSignedIn;
   appShell.hidden = !isSignedIn;
-  setSyncStatus(isSignedIn ? "Synced" : "Sign in to sync");
+  setSyncStatus(isSignedIn ? "Ready" : "Sign in");
 }
 
 async function ensureRemoteProfile(displayName = "") {
@@ -378,7 +416,7 @@ async function ensureRemoteProfile(displayName = "") {
 
 async function loadRemoteData() {
   if (!hasRemoteSession()) return;
-  setSyncStatus("Syncing...");
+  setSyncStatus("Refreshing...");
   const userId = remoteUserId();
   const [{ data: profile, error: profileError }, { data: courses, error: coursesError }, { data: rounds, error: roundsError }] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
@@ -409,10 +447,10 @@ async function loadRemoteData() {
       holes: Array.isArray(round.holes) ? round.holes : []
     }))
     .map((round) => normalizeRound(round, state.courses));
-  setSyncStatus("Synced");
+  setSyncStatus("Ready");
 }
 
-async function refreshAccountData() {
+async function refreshAccountData(trigger = null) {
   if (!hasRemoteSession()) {
     showActionStatus("Sign in to refresh your account.", "error");
     return;
@@ -422,13 +460,16 @@ async function refreshAccountData() {
     return;
   }
   try {
-    setSyncStatus("Checking...");
+    setButtonBusy(trigger, true, "Refreshing...");
+    setSyncStatus("Refreshing...");
     await loadRemoteData();
     render();
     showActionStatus("Account refreshed.");
   } catch {
     setSyncStatus("Refresh failed");
     showActionStatus("Refresh failed. Try again in a moment.", "error");
+  } finally {
+    setButtonBusy(trigger, false);
   }
 }
 
@@ -1231,7 +1272,7 @@ function bestScoreDetail(round, netToPar, handicapIndex, playingHandicapValue) {
 
 function indexStatus(summary) {
   if (!state.courses.length) {
-    return "Search the course database or add a course to start tracking.";
+    return "Search the course catalog or add a course to start tracking.";
   }
   if (summary.index === null) {
     const needed = 3 - summary.recent.length;
@@ -1345,7 +1386,16 @@ function renderRounds() {
   const handicapChanges = handicapChangesByRound(handicapRecord);
   const statusByRound = handicapStatusByRound(record);
   if (!record.length) {
-    target.innerHTML = '<div class="empty">No rounds yet. Choose a course or add a missing course, then use Add round to start your scoring record.</div>';
+    target.innerHTML = `
+      <div class="empty empty-action-card">
+        <strong>No rounds yet.</strong>
+        <span>Choose a course or add one, then start your scoring record.</span>
+        <div class="empty-actions">
+          <button class="primary-action" type="button" data-open-round>Start round</button>
+          <a class="secondary-action" href="#courses">Find course</a>
+        </div>
+      </div>
+    `;
     return;
   }
 
@@ -2402,11 +2452,11 @@ function scheduleRoundEditAutoSave() {
       round.backendTeeId = saved.tee_id;
       state.rounds = state.rounds.map((item) => item.id === existingRound.id ? round : item);
       setRoundAutoSaveStatus("Saved");
-      setSyncStatus("Saved");
+      markSaved();
       showActionStatus("Round changes saved.");
     } catch {
       setRoundAutoSaveStatus("Save failed");
-      setSyncStatus("Round sync failed");
+      setSyncStatus("Save failed");
       showActionStatus("Round changes were not saved.", "error");
     }
   }, 900);
@@ -2699,57 +2749,65 @@ function saveProfile(formData, setupComplete = true) {
   };
   renderProfile();
   showActionStatus("Profile saved.");
-  if (hasRemoteSession()) {
+  if (!hasRemoteSession()) {
+    markSaved();
+  } else {
+    setSyncStatus("Saving profile...");
     supabase
       .from("profiles")
       .upsert({ id: remoteUserId(), display_name: state.profile.name }, { onConflict: "id" })
       .then(({ error }) => {
-        if (error) setSyncStatus("Profile sync failed");
-        else setSyncStatus("Synced");
+        if (error) setSyncStatus("Profile save failed");
+        else markSaved();
       });
   }
 }
 
-document.querySelectorAll("[data-open-round]").forEach((button) => {
-  button.addEventListener("click", () => openRoundDialog());
-});
-
 authForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!supabase) {
-    setAuthStatus("Account sync is not configured for this build.");
+    setAuthStatus("Account sign-in is not configured for this build.");
     return;
   }
+  const submitButton = authForm.querySelector("[data-auth-submit]");
   const formData = new FormData(authForm);
   const email = String(formData.get("email") || "").trim();
   const password = String(formData.get("password") || "");
   const displayName = String(formData.get("displayName") || "").trim();
   setAuthStatus(authMode === "signup" ? "Creating account..." : "Signing in...");
-  const result = authMode === "signup"
-    ? await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { display_name: displayName },
-        emailRedirectTo: authRedirectUrl()
-      }
-    })
-    : await supabase.auth.signInWithPassword({ email, password });
-  if (result.error) {
-    setAuthStatus(result.error.message);
-    return;
+  setButtonBusy(submitButton, true, authMode === "signup" ? "Creating..." : "Signing in...");
+  try {
+    const result = authMode === "signup"
+      ? await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { display_name: displayName },
+          emailRedirectTo: authRedirectUrl()
+        }
+      })
+      : await supabase.auth.signInWithPassword({ email, password });
+    if (result.error) {
+      setAuthStatus(result.error.message);
+      return;
+    }
+    remoteSession = result.data.session;
+    if (!remoteSession) {
+      setAuthStatus("Check your email to confirm the account, then sign in.");
+      return;
+    }
+    await ensureRemoteProfile(displayName);
+    await loadRemoteData();
+    setSignedInUi(true);
+    showActionStatus("Signed in. Your account is ready.");
+    render();
+    route();
+  } catch (error) {
+    setAuthStatus(error.message || "Sign in failed. Try again.");
+    showActionStatus("Sign in failed. Try again.", "error");
+  } finally {
+    setButtonBusy(submitButton, false);
   }
-  remoteSession = result.data.session;
-  if (!remoteSession) {
-    setAuthStatus("Check your email to confirm the account, then sign in.");
-    return;
-  }
-  await ensureRemoteProfile(displayName);
-  await loadRemoteData();
-  setSignedInUi(true);
-  showActionStatus("Signed in. Your account is synced.");
-  render();
-  route();
 });
 
 document.querySelector("[data-auth-switch]")?.addEventListener("click", () => {
@@ -2765,12 +2823,14 @@ themeSelect?.addEventListener("change", () => {
   const theme = themeSelect.value;
   localStorage.setItem(themeStorageKey, theme);
   applyTheme(theme);
+  markSaved();
   showActionStatus("Theme saved.");
 });
 
 handicapBasisSelect?.addEventListener("change", () => {
   localStorage.setItem(handicapBasisStorageKey, handicapBasisSelect.value);
   applyHandicapBasis(handicapBasisSelect.value);
+  markSaved();
   showActionStatus("Handicap basis saved.");
 });
 
@@ -2778,11 +2838,13 @@ preferredCourseSelect?.addEventListener("change", () => {
   localStorage.setItem(preferredCourseStorageKey, preferredCourseSelect.value);
   localStorage.removeItem(preferredTeeStorageKey);
   renderSettingsControls();
+  markSaved();
   showActionStatus(preferredCourseSelect.value ? "Default course saved." : "Default course cleared.");
 });
 
 preferredTeeSelect?.addEventListener("change", () => {
   localStorage.setItem(preferredTeeStorageKey, preferredTeeSelect.value);
+  markSaved();
   showActionStatus(preferredTeeSelect.value ? "Default tee saved." : "Default tee cleared.");
 });
 
@@ -2860,7 +2922,6 @@ roundForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!state.courses.length) return;
   const saveButton = roundForm.querySelector("button[type='submit']");
-  const originalButtonText = saveButton?.textContent || "Add round";
   if (!hasRemoteSession()) {
     document.querySelector("#roundTotalScore").textContent = localPreviewMode
       ? "Open the hosted app and sign in to save rounds to your account."
@@ -2880,12 +2941,10 @@ roundForm.addEventListener("submit", async (event) => {
   const existingRound = editingRoundId ? state.rounds.find((item) => item.id === editingRoundId) : null;
   const round = roundPayloadFromDialog(existingRound);
   try {
-    if (saveButton) {
-      saveButton.disabled = true;
-      saveButton.textContent = "Saving...";
-    }
+    setButtonBusy(saveButton, true);
     setSyncStatus("Saving round...");
     setRoundAutoSaveStatus("Saving...");
+    showActionStatus("Saving round...");
     const saved = await saveRemoteRound(round, existingRound);
     round.id = saved.id;
     round.backendCourseId = saved.course_id;
@@ -2894,7 +2953,7 @@ roundForm.addEventListener("submit", async (event) => {
     if (existingRound) state.rounds = state.rounds.map((item) => item.id === existingRound.id ? round : item);
     else state.rounds.push(round);
     await loadRemoteData();
-    setSyncStatus("Synced");
+    markSaved();
     setRoundAutoSaveStatus("Saved");
     const holesPlayed = scoredHoleCount(round);
     const saveMessage = holesPlayed === 18
@@ -2905,29 +2964,23 @@ roundForm.addEventListener("submit", async (event) => {
     showActionStatus(existingRound ? "Round changes saved." : saveMessage);
     if (holesPlayed < 18) {
       editingRoundId = round.id;
+      setButtonBusy(saveButton, false);
       setRoundDialogMode(round);
       renderRoundScoringUI();
       setRoundAutoSaveStatus("Progress saved");
-      if (saveButton) saveButton.disabled = false;
       render();
       return;
     }
   } catch (error) {
     document.querySelector("#roundTotalScore").textContent = error.message || "Could not save round.";
-    setSyncStatus("Round sync failed");
+    setSyncStatus("Save failed");
     setRoundAutoSaveStatus("Save failed");
     showActionStatus("Round was not saved. Check your connection and try again.", "error");
-    if (saveButton) {
-      saveButton.disabled = false;
-      saveButton.textContent = originalButtonText;
-    }
+    setButtonBusy(saveButton, false);
     return;
   }
   editingRoundId = null;
-  if (saveButton) {
-    saveButton.disabled = false;
-    saveButton.textContent = originalButtonText;
-  }
+  setButtonBusy(saveButton, false);
   roundDialog.close();
   render();
 });
@@ -2951,14 +3004,11 @@ courseForm.addEventListener("submit", async (event) => {
     return;
   }
   const saveButton = courseForm.querySelector("button[type='submit']");
-  const originalButtonText = saveButton?.textContent || "Save course";
   try {
-    if (saveButton) {
-      saveButton.disabled = true;
-      saveButton.textContent = "Saving...";
-    }
+    setButtonBusy(saveButton, true);
     setSyncStatus("Saving course...");
     holeTotals.textContent = "Saving course...";
+    showActionStatus("Saving course...");
     const remoteCourse = await saveRemoteCourse(formData, holes);
     preferredRoundCourseId = remoteCourse.id;
     await loadRemoteData();
@@ -2968,22 +3018,20 @@ courseForm.addEventListener("submit", async (event) => {
     renderHoleEditor();
     updateCourseFormMode();
     setCourseFormOpen(false);
-    setSyncStatus("Synced");
+    markSaved();
     showActionStatus("Course saved and ready to use.");
     render();
   } catch (error) {
     holeTotals.textContent = error.message || "Could not save course.";
-    setSyncStatus("Course sync failed");
+    setSyncStatus("Save failed");
     showActionStatus("Course was not saved. Check the form and try again.", "error");
   } finally {
-    if (saveButton) {
-      saveButton.disabled = false;
-      saveButton.textContent = originalButtonText;
-    }
+    setButtonBusy(saveButton, false);
   }
 });
 
 document.addEventListener("click", async (event) => {
+  const openRoundButton = event.target.closest("[data-open-round]");
   const editRoundButton = event.target.closest("[data-edit-round]");
   const resumeRoundButton = event.target.closest("[data-resume-round]");
   const roundButton = event.target.closest("[data-delete-round]");
@@ -3000,6 +3048,10 @@ document.addEventListener("click", async (event) => {
   const roundHoleButton = event.target.closest("[data-round-hole]");
   const prevHoleButton = event.target.closest("[data-prev-hole]");
   const nextHoleButton = event.target.closest("[data-next-hole]");
+  if (openRoundButton) {
+    event.preventDefault();
+    openRoundDialog();
+  }
   if (strokeButton) setActiveHoleScore(Number(strokeButton.dataset.stroke));
   if (clearHoleButton) clearActiveHoleScore();
   if (roundHoleButton) setActiveRoundHole(Number(roundHoleButton.dataset.roundHole));
@@ -3030,20 +3082,21 @@ document.addEventListener("click", async (event) => {
       showActionStatus("You are offline. Reconnect before publishing this course.", "error");
       return;
     }
-    publishCourseButton.disabled = true;
+    setButtonBusy(publishCourseButton, true, "Publishing...");
     setSyncStatus("Publishing...");
+    showActionStatus("Publishing course...");
     const { error } = await supabase
       .from("courses")
       .update({ is_public_unverified: true })
       .eq("id", course.backendCourseId);
     if (error) {
-      publishCourseButton.disabled = false;
+      setButtonBusy(publishCourseButton, false);
       setSyncStatus("Publish failed");
       alert(error.message);
       return;
     }
     await loadRemoteData();
-    setSyncStatus("Published as unverified");
+    markSaved("Course shared");
     showActionStatus("Course shared for the community.");
     render();
   }
@@ -3057,16 +3110,15 @@ document.addEventListener("click", async (event) => {
       showActionStatus("You are offline. Reconnect before verifying this course.", "error");
       return;
     }
-    verifyCourseButton.disabled = true;
-    verifyCourseButton.textContent = "Verifying...";
+    setButtonBusy(verifyCourseButton, true, "Verifying...");
     setSyncStatus("Verifying...");
+    showActionStatus("Verifying course...");
     const { error } = await supabase
       .from("courses")
       .update({ status: "approved", is_public_unverified: false })
       .eq("id", course.backendCourseId);
     if (error) {
-      verifyCourseButton.disabled = false;
-      verifyCourseButton.textContent = "Verify";
+      setButtonBusy(verifyCourseButton, false);
       setSyncStatus("Verification failed");
       alert(error.message);
       return;
@@ -3074,7 +3126,7 @@ document.addEventListener("click", async (event) => {
     markCourseApprovedLocal(course.backendCourseId);
     render();
     await loadRemoteData();
-    setSyncStatus("Verified and published");
+    markSaved("Course verified");
     showActionStatus("Course verified and published.");
     render();
   }
@@ -3123,16 +3175,16 @@ document.addEventListener("click", async (event) => {
     event.stopPropagation();
     if (!confirm("Delete this round from your account?")) return;
     if (!hasRemoteSession()) {
-      alert("Open the hosted app and sign in to delete synced rounds.");
+      alert("Open the hosted app and sign in to delete saved rounds.");
       return;
     }
     if (!navigator.onLine) {
       showActionStatus("You are offline. Reconnect before deleting this round.", "error");
       return;
     }
-    roundButton.disabled = true;
-    roundButton.textContent = "Deleting...";
+    setButtonBusy(roundButton, true, "Deleting...");
     setSyncStatus("Deleting round...");
+    showActionStatus("Deleting round...");
     const roundId = roundButton.dataset.deleteRound;
     const previousRounds = state.rounds;
     clearTimeout(roundAutoSaveTimer);
@@ -3157,7 +3209,7 @@ document.addEventListener("click", async (event) => {
       return;
     }
     await loadRemoteData();
-    setSyncStatus("Synced");
+    markSaved("Round deleted");
     showActionStatus("Round deleted.");
     render();
     return;
@@ -3171,16 +3223,16 @@ document.addEventListener("click", async (event) => {
     if (!confirm(message)) return;
     const course = courseById(courseId);
     if (!hasRemoteSession() || !course?.backendCourseId) {
-      alert("Open the hosted app and sign in to delete synced courses.");
+      alert("Open the hosted app and sign in to delete saved courses.");
       return;
     }
     if (!navigator.onLine) {
       showActionStatus("You are offline. Reconnect before deleting this course.", "error");
       return;
     }
-    courseButton.disabled = true;
-    courseButton.textContent = "Deleting...";
+    setButtonBusy(courseButton, true, "Deleting...");
     setSyncStatus("Deleting course...");
+    showActionStatus("Deleting course...");
     const { data, error } = await supabase
       .from("courses")
       .delete()
@@ -3188,8 +3240,7 @@ document.addEventListener("click", async (event) => {
       .select("id")
       .maybeSingle();
     if (error || !data) {
-      courseButton.disabled = false;
-      courseButton.textContent = "Delete";
+      setButtonBusy(courseButton, false);
       setSyncStatus("Delete failed");
       alert(error?.message || "That course could not be deleted.");
       return;
@@ -3198,7 +3249,7 @@ document.addEventListener("click", async (event) => {
     state.rounds = state.rounds.filter((round) => round.backendCourseId !== data.id);
     render();
     await loadRemoteData();
-    setSyncStatus("Synced");
+    markSaved("Course deleted");
     showActionStatus("Course deleted.");
     render();
     return;
@@ -3229,20 +3280,20 @@ document.querySelector("[data-export]")?.addEventListener("click", () => {
   URL.revokeObjectURL(url);
 });
 
-document.querySelector("[data-refresh-data]")?.addEventListener("click", refreshAccountData);
+document.querySelector("[data-refresh-data]")?.addEventListener("click", (event) => refreshAccountData(event.currentTarget));
 
 window.addEventListener("hashchange", route);
 window.addEventListener("resize", () => drawTrend(handicapSummary().recent));
 window.addEventListener("online", async () => {
   if (!hasRemoteSession()) return;
   try {
-    setSyncStatus("Checking...");
+    setSyncStatus("Refreshing...");
     await loadRemoteData();
-    setSyncStatus("Synced");
+    setSyncStatus("Ready");
     showActionStatus("Back online. Your account is up to date.");
     render();
   } catch {
-    setSyncStatus("Online, sync failed");
+    setSyncStatus("Refresh failed");
     showActionStatus("Back online, but refresh failed. Try again in a moment.", "error");
   }
 });

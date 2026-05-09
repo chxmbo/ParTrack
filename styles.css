@@ -462,6 +462,16 @@ h3 {
   background: var(--green);
 }
 
+.primary-action:disabled,
+.secondary-action:disabled,
+.danger-action:disabled,
+.icon-button:disabled,
+.delete-button:disabled {
+  cursor: wait;
+  opacity: 0.62;
+  transform: none;
+}
+
 .secondary-action {
   padding: 0 14px;
   border: 1px solid var(--line);
@@ -1217,6 +1227,33 @@ h3 {
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.66);
   color: var(--muted);
+}
+
+.empty-action-card {
+  display: grid;
+  gap: 12px;
+}
+
+.empty-action-card strong {
+  color: var(--ink);
+  font-size: 1.35rem;
+}
+
+.empty-action-card span {
+  display: block;
+}
+
+.empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.empty-actions .primary-action,
+.empty-actions .secondary-action {
+  min-height: 46px;
+  text-decoration: none;
 }
 
 .score-chip,
